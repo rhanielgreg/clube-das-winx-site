@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09070b">
+  <meta name="description" content="Ranking oficial de sobreviventes do Clube das Winx no Project Zomboid.">
+  <title>Ranking dos Sobreviventes — Clube das Winx</title>
+  <link rel="preload" href="/fonts/Poppins-Bold.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="ranking">
+  <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+  <header class="site-header is-scrolled" data-header>
+    <a class="brand" href="/" aria-label="Clube das Winx — início"><img src="/assets/winx-zomboid-profile.webp" alt=""><span><small>PROJECT ZOMBOID</small><b>CLUBE DAS WINX</b></span></a>
+    <nav class="desktop-nav" aria-label="Navegação principal"><a href="/">Início</a><a href="/#servidor">Servidor</a><a class="is-active" href="/ranking">Ranking</a></nav>
+    <a class="button button-small button-pink header-connect" href="/api/connect"><span class="button-scan"></span>Entrar no servidor</a>
+    <button class="menu-trigger" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-open><span></span><span></span><span></span><span class="sr-only">Abrir menu</span></button>
+  </header>
+  <aside class="menu-overlay" id="site-menu" aria-hidden="true" data-menu>
+    <button class="menu-close" type="button" data-menu-close aria-label="Fechar menu">×</button><span class="menu-kicker">NAVEGAÇÃO</span>
+    <nav aria-label="Menu móvel"><a href="/">Início</a><a href="/#servidor">Servidor</a><a href="/ranking">Ranking completo</a><a href="/api/status">Status em JSON</a></nav>
+    <div class="menu-foot"><span>169.155.127.74:9045</span><span>clubedaswinx.modded.fun:9045</span></div>
+  </aside>
+
+  <main class="page-main">
+    <section class="page-hero reveal-up">
+      <div><span class="section-index">HALL DOS SOBREVIVENTES</span><h1 class="page-title">RANKING DA<br><em>TEMPORADA</em></h1><p class="page-intro">A classificação usa somente estatísticas confirmadas pelo coletor. Kills não validadas ficam indisponíveis — nunca estimadas.</p></div>
+      <div class="season-chip"><small>TEMPORADA ATUAL</small><strong data-season-name>Consultando...</strong><span data-season-state>CARREGANDO CLASSIFICAÇÃO</span></div>
+    </section>
+
+    <p class="sync-warning" data-sync-warning></p>
+    <section class="ranking-page-grid">
+      <aside class="supreme-showcase reveal-up">
+        <div class="big-crown" aria-hidden="true">♛</div>
+        <span class="overline">O SOBREVIVENTE SUPREMO</span>
+        <h2 data-leader-name>Aguardando desafiante</h2>
+        <p class="reward-copy">O primeiro colocado receberá uma premiação especial oferecida pelo Admin do servidor.</p>
+        <div class="showcase-stats"><div><b data-leader-kills>—</b><small>ZUMBIS ELIMINADOS</small></div><div><b data-leader-time>—</b><small>SOBREVIVÊNCIA</small></div></div>
+        <a class="button button-ghost" href="/ranking" data-leader-profile>Ver perfil do líder</a>
+        <p class="admin-note">Premiação e critérios de encerramento definidos pela administração.</p>
+      </aside>
+
+      <div class="ranking-board reveal-up delay-2">
+        <div class="board-toolbar">
+          <div>
+            <h2>CLASSIFICAÇÃO GERAL</h2>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+              <small style="margin:0">ORDEM INICIAL: KILLS TOTAIS</small>
+              <span class="cron-timer cron-timer-inline" data-cron-timer title="Coleta automatizada via cron a cada 5 minutos no Railway"><span class="timer-icon">⏳</span><span data-cron-timer-text>--:--</span></span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div class="search-box">
+              <input type="text" data-ranking-search placeholder="Buscar jogador..." aria-label="Buscar jogador por nome" style="background:rgba(255,255,255,.05);border:1px solid var(--line);padding:7px 12px;font-size:8px;color:#fff;border-radius:4px;outline:none;min-width:140px">
+            </div>
+            <div class="filters" aria-label="Filtros do ranking">
+              <button class="filter is-active" data-filter="kills" data-needs-kills>KILLS</button>
+              <button class="filter" data-filter="time" data-needs-time>SOBREVIVÊNCIA</button>
+              <button class="filter" data-filter="alive">VIVOS</button>
+              <button class="filter" data-filter="dead">CEMITÉRIO (MORTOS)</button>
+            </div>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="ranking-table">
+            <thead><tr><th>#</th><th>SOBREVIVENTE (STEAM)</th><th>KILLS</th><th>ARMA</th><th>CORPO A CORPO</th><th>TEMPO</th><th>ESTADO</th><th>ATUALIZAÇÃO</th></tr></thead>
+            <tbody data-ranking-body><tr class="table-empty"><td colspan="8">Sincronizando o arquivo de sobreviventes...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="season-history" data-reveal>
+      <span class="section-index">ARQUIVO PRESERVADO</span><h2>TEMPORADAS ANTERIORES</h2>
+      <div class="season-cards" data-season-history><article class="season-card"><small>CARREGANDO</small><h3>Histórico de campeões</h3><p>Buscando temporadas encerradas...</p></article></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="footer-brand"><img src="/assets/winx-zomboid-profile.webp" alt=""><span><b>CLUBE DAS WINX</b><small>PROJECT ZOMBOID COMMUNITY</small></span></div><p>Sobreviva. Suba no ranking. Deixe seu nome na temporada.</p><div><a href="/">Início</a><a href="/api/status">Status</a><a href="/api/connect">Steam</a></div><small>© <span data-year></span> Clube das Winx · Desenvolvido por Galera Nerd</small></footer>
+  <div class="toast" role="status" aria-live="polite" data-toast></div>
+  <script type="module" src="/site.js"></script>
+</body>
+</html>

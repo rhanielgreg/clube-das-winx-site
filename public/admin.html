@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard · Clube das Winx</title>
+  <meta name="description" content="Painel administrativo de controle de temporadas, ranking e telemetria do Clube das Winx Project Zomboid.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/assets/winx-zomboid-profile.webp">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.js"></script>
+</head>
+<body class="admin-body">
+  <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="admin-topbar">
+    <div class="admin-brand">
+      <a href="/" class="brand">
+        <img src="/assets/winx-zomboid-profile.webp" alt="Winx Zomboid">
+        <span><small>CONTROLE OPERACIONAL</small><b>PAINEL DO ADMIN</b></span>
+      </a>
+      <span class="admin-badge">V14 CONTROL SUITE</span>
+    </div>
+    <div class="admin-session" data-admin-session style="display:none;">
+      <span class="user-pill"><i class="sync-dot"></i><span data-admin-email>—</span></span>
+      <button class="button button-small button-ghost" data-action-logout>SAIR</button>
+    </div>
+  </header>
+
+  <main class="admin-container">
+    <!-- TELA DE LOGIN (SENHA / LINK MÁGICO) -->
+    <section class="admin-auth-card" data-auth-card>
+      <div class="auth-box">
+        <div class="auth-icon">✦</div>
+        <small class="kicker">ACESSO RESTRITO</small>
+        <h1>Autenticação de Administrador</h1>
+        <p class="auth-desc">Acesso restrito ao administrador do servidor. Entre com sua senha do Supabase ou solicite um link mágico.</p>
+
+        <!-- SELETOR DE ABAS DE LOGIN -->
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab-btn is-active" data-tab="password">E-mail + Senha</button>
+          <button type="button" class="auth-tab-btn" data-tab="magic">Link Mágico</button>
+        </div>
+
+        <!-- FORMULÁRIO 1: E-MAIL E SENHA (SEM LIMITES DE ENVIO) -->
+        <form class="auth-form" data-password-form>
+          <div class="input-group">
+            <label for="admin-email-pwd">E-MAIL DO ADMINISTRADOR</label>
+            <input type="email" id="admin-email-pwd" name="email" required autocomplete="email" placeholder="seu-email@dominio.com">
+          </div>
+          <div class="input-group">
+            <label for="admin-password-input">SENHA</label>
+            <input type="password" id="admin-password-input" name="password" required autocomplete="current-password" placeholder="••••••••••••">
+          </div>
+          <button type="submit" class="button button-pink auth-submit" data-pwd-login-btn>
+            <span class="button-scan"></span>
+            ENTRAR COM SENHA ➔
+          </button>
+        </form>
+
+        <!-- FORMULÁRIO 2: LINK MÁGICO (OTP) -->
+        <form class="auth-form" data-magic-form style="display:none;">
+          <div class="input-group">
+            <label for="admin-email-magic">E-MAIL DO ADMINISTRADOR</label>
+            <input type="email" id="admin-email-magic" name="email" required autocomplete="email" placeholder="seu-email@dominio.com">
+          </div>
+          <button type="submit" class="button button-pink auth-submit" data-magic-login-btn>
+            <span class="button-scan"></span>
+            ENVIAR LINK MÁGICO ↗
+          </button>
+          <p class="auth-hint">Nota: O envio de links por e-mail possui limite por hora no Supabase.</p>
+        </form>
+
+        <div class="auth-feedback" data-auth-feedback style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD PRINCIPAL V14 -->
+    <div class="admin-dashboard" data-admin-dashboard style="display:none;">
+      <!-- KPI STATS TILES -->
+      <section class="kpi-grid">
+        <div class="kpi-tile">
+          <small>TEMPORADA ATIVA</small>
+          <strong data-kpi-season>—</strong>
+          <span class="kpi-sub" data-kpi-season-sub>Status de disputa</span>
+        </div>
+        <div class="kpi-tile">
+          <small>SOBREVIVENTES RANKEADOS</small>
+          <strong data-kpi-players>0</strong>
+          <span class="kpi-sub">Total catalogado</span>
+        </div>
+        <div class="kpi-tile">
+          <small>LÍDER SUPREMO</small>
+          <strong data-kpi-leader>—</strong>
+          <span class="kpi-sub" data-kpi-leader-kills>0 kills</span>
+        </div>
+        <div class="kpi-tile">
+          <small>ÚLTIMA COLETA RAILWAY</small>
+          <strong data-kpi-sync>—</strong>
+          <span class="kpi-sub" data-kpi-sync-status>SFTP BisectHosting</span>
+        </div>
+      </section>
+
+      <!-- AVISO DE CHAVE SERVICE_ROLE -->
+      <div class="admin-alert alert-warning" data-service-key-warning style="display:none;">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <strong>Atenção: SUPABASE_SERVICE_ROLE_KEY não configurada na Vercel</strong>
+          <p>O painel está operando em modo somente leitura. Para encerrar ou iniciar temporadas por aqui, adicione a variável <code>SUPABASE_SERVICE_ROLE_KEY</code> nas configurações da Vercel.</p>
+        </div>
+      </div>
+
+      <div class="admin-main-grid">
+        <!-- COLUNA PRINCIPAL: CONTROLE DA TEMPORADA ATIVA E AÇÕES RÁPIDAS -->
+        <div class="admin-left-col">
+          <!-- CARD DA TEMPORADA ATIVA -->
+          <section class="admin-panel active-season-panel">
+            <div class="panel-header">
+              <div>
+                <small class="kicker">CICLO COMPETITIVO</small>
+                <h2>Gerenciador de Temporada</h2>
+              </div>
+              <span class="status-badge" data-season-status-badge>CONSULTANDO</span>
+            </div>
+
+            <div class="season-detail-box" data-active-season-content>
+              <div class="season-primary-info">
+                <h3 data-season-title>Carregando temporada...</h3>
+                <p class="season-reward" data-season-reward>—</p>
+                <div class="season-meta-chips">
+                  <span>ID: <code data-season-id>—</code></span>
+                  <span>Início: <strong data-season-start>—</strong></span>
+                </div>
+              </div>
+
+              <div class="action-buttons-row">
+                <button class="button button-ghost button-small" data-action-reset-baseline title="Faz com que as kills acumuladas anteriores dos personagens contem já na temporada">
+                  ⚙️ ZERAR LINHA DE BASE (CONTAR KILLS HISTÓRICAS)
+                </button>
+                <button class="button button-pink button-small" data-action-open-close-modal>
+                  🏆 ENCERRAR TEMPORADA E COROAR CAMPEÃO
+                </button>
+              </div>
+            </div>
+
+            <!-- QUANDO NÃO HÁ TEMPORADA ATIVA -->
+            <div class="no-season-box" data-no-season-content style="display:none;">
+              <h3>Nenhuma temporada ativa no momento</h3>
+              <p>O ranking está congelado aguardando o início de um novo ciclo. Inicie uma nova temporada abaixo.</p>
+            </div>
+          </section>
+
+          <!-- FORMULÁRIO DE NOVA TEMPORADA -->
+          <section class="admin-panel">
+            <div class="panel-header">
+              <div>
+                <small class="kicker">EXPANSÃO</small>
+                <h2>Iniciar Nova Temporada</h2>
+              </div>
+            </div>
+
+            <form class="new-season-form" data-new-season-form>
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="new-season-name">NOME DA TEMPORADA</label>
+                  <input type="text" id="new-season-name" name="name" placeholder="Ex: Temporada 2" required maxlength="80">
+                </div>
+                <div class="input-group">
+                  <label for="new-season-slug">SLUG (URL amigável)</label>
+                  <input type="text" id="new-season-slug" name="slug" placeholder="Ex: temporada-2" required pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$">
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="new-season-reward">MENSAGEM DE PREMIAÇÃO</label>
+                <input type="text" id="new-season-reward" name="reward" placeholder="Ex: Premiação especial oferecida pelo Admin aos 3 melhores sobreviventes." value="Premiação especial oferecida pelo Admin do servidor Clube das Winx.">
+              </div>
+              <button type="submit" class="button button-pink" data-start-season-btn>
+                <span class="button-scan"></span>
+                INICIAR TEMPORADA 🚀
+              </button>
+            </form>
+          </section>
+
+          <!-- TABELA COMPLETA DE CLASSIFICAÇÃO COM AÇÕES -->
+          <section class="admin-panel">
+            <div class="panel-header">
+              <div>
+                <small class="kicker">REGISTRO DE SOBREVIVENTES</small>
+                <h2>Tabela ao Vivo</h2>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="button button-ghost button-small" data-action-export-csv title="Exporta a classificação atual da temporada em arquivo CSV">📥 EXPORTAR CSV</button>
+                <button class="button button-ghost button-small" data-action-refresh>🔄 ATUALIZAR</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>SOBREVIVENTE</th>
+                    <th>KILLS</th>
+                    <th>ARMA</th>
+                    <th>MELEE</th>
+                    <th>TEMPO</th>
+                    <th>ESTADO</th>
+                    <th>ÚLTIMA LEITURA</th>
+                  </tr>
+                </thead>
+                <tbody data-admin-ranking-body>
+                  <tr><td colspan="8" class="table-loading">Carregando dados...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- COLUNA LATERAL: HISTÓRICO DE TEMPORADAS E TELEMETRIA -->
+        <div class="admin-right-col">
+          <!-- CARD DE HISTÓRICO DE TEMPORADAS -->
+          <section class="admin-panel">
+            <div class="panel-header">
+              <div>
+                <small class="kicker">ARQUIVO DE CAMPEÕES</small>
+                <h2>Histórico</h2>
+              </div>
+            </div>
+            <div class="history-list" data-admin-seasons-list>
+              <div class="history-empty">Buscando temporadas arquivadas...</div>
+            </div>
+          </section>
+
+          <!-- CARD DE TELEMETRIA DO SERVIDOR / COLETOR -->
+          <section class="admin-panel telemetry-card">
+            <div class="panel-header">
+              <div>
+                <small class="kicker">INFRAESTRUTURA</small>
+                <h2>Telemetria</h2>
+              </div>
+            </div>
+            <div class="telemetry-rows">
+              <div class="telemetry-row">
+                <span>Servidor Project Zomboid:</span>
+                <strong class="green-text">Online (A2S ativo)</strong>
+              </div>
+              <div class="telemetry-row">
+                <span>Coletor Railway:</span>
+                <strong class="green-text">Cron a cada 5m</strong>
+              </div>
+              <div class="telemetry-row">
+                <span>SFTP BisectHosting:</span>
+                <strong class="green-text">players.db validado</strong>
+              </div>
+              <div class="telemetry-row">
+                <span>RLS Supabase:</span>
+                <strong class="green-text">Ativo e protegido</strong>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE ENCERRAMENTO -->
+    <div class="admin-modal" data-close-modal style="display:none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Confirmar Encerramento de Temporada</h3>
+          <button class="modal-close" data-modal-cancel>✕</button>
+        </div>
+        <div class="modal-body">
+          <p>Você está prestes a encerrar a <strong data-modal-season-name>—</strong>.</p>
+          <div class="modal-winner-box">
+            <small>CAMPEÃO IDENTIFICADO:</small>
+            <h4 data-modal-winner-name>—</h4>
+            <p><span data-modal-winner-kills>0</span> kills registradas na temporada.</p>
+          </div>
+          <p class="modal-warning">Essa ação é definitiva: o campeão será gravado de forma permanente no arquivo histórico e os pontos serão congelados.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="button button-ghost button-small" data-modal-cancel>CANCELAR</button>
+          <button class="button button-pink button-small" data-modal-confirm-btn>SIM, ENCERRAR AGORA</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" role="status" aria-live="polite" data-toast></div>
+
+  <script type="module" src="/admin.js"></script>
+</body>
+</html>

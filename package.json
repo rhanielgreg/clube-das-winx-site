@@ -1,0 +1,27 @@
+{
+  "name": "clube-das-winx-server-status",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Status do servidor Project Zomboid do Clube das Winx via Discord Interactions HTTP e Vercel.",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "prepare-assets": "node scripts/prepare-assets.js",
+    "test": "node --test",
+    "test:collector": "python -m unittest discover -s collector -p \"test_*.py\"",
+    "check": "node --check public/site.js && npm test",
+    "test:card": "node scripts/preview-card.js",
+    "register-commands": "node scripts/register-commands.js",
+    "deploy": "vercel",
+    "deploy:prod:stage": "vercel deploy --prod --skip-domain"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.8.0",
+    "discord-interactions": "^4.4.0",
+    "dotenv": "^17.4.2",
+    "sharp": "^0.35.3"
+  }
+}

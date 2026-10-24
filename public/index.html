@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09070b">
+  <meta name="description" content="Portal gamer e status ao vivo do servidor Project Zomboid do Clube das Winx.">
+  <title>Clube das Winx — Sobreviver é apenas o começo</title>
+  <link rel="preload" href="/fonts/Poppins-Bold.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="/assets/winx-zomboid-banner.webp" as="image">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="home">
+  <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+  <header class="site-header" data-header>
+    <a class="brand" href="/" aria-label="Clube das Winx — início">
+      <img src="/assets/winx-zomboid-profile.webp" alt="">
+      <span><small>PROJECT ZOMBOID</small><b>CLUBE DAS WINX</b></span>
+    </a>
+    <nav class="desktop-nav" aria-label="Navegação principal">
+      <a class="is-active" href="/">Início</a>
+      <a href="#servidor">Servidor</a>
+      <a href="/ranking">Ranking</a>
+    </nav>
+    <a class="button button-small button-pink header-connect" href="/api/connect">
+      <span class="button-scan"></span>Entrar no servidor
+    </a>
+    <button class="menu-trigger" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-open>
+      <span></span><span></span><span></span><span class="sr-only">Abrir menu</span>
+    </button>
+  </header>
+
+  <aside class="menu-overlay" id="site-menu" aria-hidden="true" data-menu>
+    <button class="menu-close" type="button" data-menu-close aria-label="Fechar menu">×</button>
+    <span class="menu-kicker">NAVEGAÇÃO</span>
+    <nav aria-label="Menu móvel">
+      <a href="/">Início</a>
+      <a href="#servidor">Servidor</a>
+      <a href="/ranking">Ranking completo</a>
+      <a href="/api/status">Status em JSON</a>
+    </nav>
+    <div class="menu-foot"><span>169.155.127.74:9045</span><span>clubedaswinx.modded.fun:9045</span></div>
+  </aside>
+
+  <main>
+    <section class="home-grid" aria-labelledby="hero-title">
+      <div class="hero-stage" data-parallax-stage>
+        <div class="hero-backdrop" data-parallax="0.035"></div>
+        <div class="hero-vignette"></div>
+        <div class="hero-copy">
+          <div class="hero-kicker reveal-up"><span></span> SERVIDOR BRASILEIRO • PROJECT ZOMBOID</div>
+          <h1 id="hero-title" class="reveal-up delay-1">CLUBE<br>DAS <em>WINX</em></h1>
+          <p class="hero-line reveal-up delay-2">Sobreviver é apenas o começo.</p>
+          <p class="hero-description reveal-up delay-3">Uma comunidade multiplayer onde cada noite deixa uma história — e cada zumbi derrubado aproxima você do topo.</p>
+          <div class="hero-actions reveal-up delay-4">
+            <a class="button button-pink" href="/api/connect"><span class="button-scan"></span>Conectar pela Steam</a>
+            <a class="button button-ghost" href="/ranking">Ver ranking</a>
+          </div>
+        </div>
+        <div class="hero-hud reveal-up delay-4" aria-live="polite">
+          <div class="pulse-orb" data-status-orb></div>
+          <div><small>STATUS DO SERVIDOR</small><strong data-server-state>Consultando...</strong></div>
+          <div class="hud-separator"></div>
+          <div><small>SOBREVIVENTES</small><strong data-server-players>— / —</strong></div>
+          <div class="hud-separator"></div>
+          <div><small>LATÊNCIA</small><strong data-server-latency>—</strong></div>
+        </div>
+      </div>
+
+      <aside class="ranking-panel reveal-right" aria-labelledby="ranking-side-title">
+        <div class="panel-topline"><span>CLASSIFICAÇÃO AO VIVO</span><i></i></div>
+        <div class="ranking-heading">
+          <div><small>DISPUTA DA TEMPORADA</small><h2 id="ranking-side-title">RANKING DOS<br>SOBREVIVENTES</h2></div>
+          <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M19 8h26v8h8v9c0 9-7 16-16 17v6h9v8H18v-8h9v-6c-9-1-16-8-16-17v-9h8V8Zm0 16v-2h-3v3c0 5 3 9 8 11-3-3-5-7-5-12Zm26 0c0 5-2 9-5 12 5-2 8-6 8-11v-3h-3v2Z"/></svg>
+        </div>
+        <div class="ranking-sync-bar">
+          <div class="ranking-sync" data-ranking-sync><span class="sync-dot"></span>Conectando ao ranking...</div>
+          <div class="cron-timer" data-cron-timer title="Coleta automatizada via cron a cada 5 minutos no Railway"><span class="timer-icon">⏳</span><span data-cron-timer-text>--:--</span></div>
+        </div>
+        <div class="leader-card" data-leader-card>
+          <div class="leader-aura"></div>
+          <div class="leader-crown" aria-hidden="true">♛</div>
+          <div class="leader-portrait"><img src="/assets/winx-zomboid-profile.webp" alt=""><span>1</span></div>
+          <small>O SOBREVIVENTE SUPREMO</small>
+          <h3 data-leader-name>Aguardando desafiante</h3>
+          <div class="leader-stats">
+            <span><b data-leader-kills>—</b><small>KILLS</small></span>
+            <i></i>
+            <span><b data-leader-time>—</b><small>SOBREVIVÊNCIA</small></span>
+          </div>
+        </div>
+        <ol class="ranking-list" data-ranking-list>
+          <li class="ranking-empty"><span class="loader-line"></span><span class="loader-line short"></span></li>
+          <li class="ranking-empty"><span class="loader-line"></span><span class="loader-line short"></span></li>
+          <li class="ranking-empty"><span class="loader-line"></span><span class="loader-line short"></span></li>
+        </ol>
+        <div class="award-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.5 5.1L20 8l-4 3.9.9 5.5L12 14.8l-4.9 2.6.9-5.5L4 8l5.5-.9L12 2Z"/></svg>
+          <p><b>PREMIAÇÃO ESPECIAL</b>O primeiro colocado receberá uma premiação oferecida pelo Admin.</p>
+        </div>
+        <a class="ranking-link" href="/ranking">ABRIR RANKING COMPLETO <span>↗</span></a>
+      </aside>
+    </section>
+
+    <div class="survivor-ribbon" aria-hidden="true">
+      <div>SEM REGRAS • SEM RESGATE • APENAS SOBREVIVÊNCIA • CLUBE DAS WINX • SEM REGRAS • SEM RESGATE • APENAS SOBREVIVÊNCIA • CLUBE DAS WINX •</div>
+    </div>
+
+    <section class="server-section section-shell" id="servidor" data-reveal>
+      <div class="section-copy">
+        <span class="section-index">01 / SERVIDOR</span>
+        <h2>ENTRE NO CAOS.<br><em>SOBREVIVA JUNTO.</em></h2>
+        <p>O status abaixo vem diretamente da consulta do servidor. Sem contadores decorativos, sem jogadores inventados.</p>
+        <div class="access-grid">
+          <div><small>ENDEREÇO IP</small><strong>169.155.127.74:9045</strong><button data-copy="169.155.127.74:9045">COPIAR</button></div>
+          <div><small>DDNS</small><strong>clubedaswinx.modded.fun:9045</strong><button data-copy="clubedaswinx.modded.fun:9045">COPIAR</button></div>
+        </div>
+        <div class="online-players-preview" data-online-players-box style="margin:20px 0;padding:16px;border:1px solid var(--line);background:rgba(255,255,255,.025);display:none">
+          <small style="font-size:7px;letter-spacing:.18em;color:var(--pink-soft);display:block;margin-bottom:8px">JOGANDO AGORA NO SERVIDOR</small>
+          <div data-online-players-list style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
+        <div class="section-actions">
+          <a class="button button-pink" href="/api/connect"><span class="button-scan"></span>Jogar agora</a>
+          <a class="text-link" href="/api/status">DADOS EM JSON ↗</a>
+        </div>
+      </div>
+      <div class="status-visual" data-tilt>
+        <div class="corner corner-a"></div><div class="corner corner-b"></div>
+        <img src="/api/status?format=image" alt="Card com o status atual do Clube das Winx" data-status-card>
+        <div class="status-stamp"><span data-status-orb class="pulse-orb"></span><b data-server-state>CONSULTANDO</b></div>
+      </div>
+    </section>
+
+    <section class="competition section-shell" data-reveal>
+      <div class="competition-visual" data-parallax-stage>
+        <img src="/assets/winx-zomboid-profile.webp" alt="Sobrevivente do Clube das Winx" data-parallax="0.025">
+        <span class="rank-ghost">01</span>
+        <div class="crosshair"></div>
+      </div>
+      <div class="section-copy">
+        <span class="section-index">02 / COMPETIÇÃO</span>
+        <h2>UMA TEMPORADA.<br><em>UM SUPREMO.</em></h2>
+        <p>Cada temporada poderá ser encerrada manualmente pela administração. O resultado final, a classificação e o campeão ficam preservados no histórico.</p>
+        <div class="season-rules">
+          <div><b>01</b><span><strong>CRITÉRIO PRINCIPAL</strong>Mais zumbis eliminados</span></div>
+          <div><b>02</b><span><strong>DESEMPATE</strong>Maior tempo de sobrevivência</span></div>
+          <div><b>03</b><span><strong>DECISÃO FINAL</strong>Critério administrativo</span></div>
+        </div>
+        <p class="fine-print">Critérios exibidos como proposta até a validação completa do extrator. Premiação e encerramento definidos pela administração.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand"><img src="/assets/winx-zomboid-profile.webp" alt=""><span><b>CLUBE DAS WINX</b><small>PROJECT ZOMBOID COMMUNITY</small></span></div>
+    <p>Sobreviva. Suba no ranking. Deixe seu nome na temporada.</p>
+    <div><a href="/ranking">Ranking</a><a href="/api/status">Status</a><a href="/api/connect">Steam</a></div>
+    <small>© <span data-year></span> Clube das Winx · Desenvolvido por Galera Nerd</small>
+  </footer>
+  <div class="toast" role="status" aria-live="polite" data-toast></div>
+  <script type="module" src="/site.js"></script>
+</body>
+</html>

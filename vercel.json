@@ -1,0 +1,33 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "regions": ["gru1"],
+  "functions": {
+    "api/interactions.js": {
+      "maxDuration": 15,
+      "includeFiles": "public/**"
+    },
+    "api/status.js": {
+      "maxDuration": 15,
+      "includeFiles": "public/**"
+    },
+    "api/ranking.js": {
+      "maxDuration": 10
+    },
+    "api/player.js": {
+      "maxDuration": 10
+    },
+    "api/admin.js": {
+      "maxDuration": 15
+    }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/ranking", "destination": "/ranking.html" },
+    { "source": "/jogador", "destination": "/jogador.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/painel", "destination": "/admin.html" },
+    { "source": "/status", "destination": "/api/status" },
+    { "source": "/connect", "destination": "/api/connect" }
+  ]
+}
