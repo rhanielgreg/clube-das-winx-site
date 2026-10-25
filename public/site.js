@@ -1,111 +1,59 @@
+import { achievementPanel } from './achievement-panel.js';
+import { formatNumber, formatDuration, hasNumber, lifeState, escapeHtml as safe, filterRanking, UUID } from './contracts.js';
+import { profileMetrics, memorialDate } from './presentation.js';
+import { characterAvatar } from './avatar.js';
+import { livingRanking, seasonResult, memorialCategories } from './championship.js';
+
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const hasNumber = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
-const formatNumber = (value) => hasNumber(value) ? new Intl.NumberFormat('pt-BR').format(Number(value)) : '—';
+const filters = { filter: 'kills', search: '' };
+let rankingPayload = null;
+let memorialSearch = '';
+let isDemo = false;
+const scenario = new URLSearchParams(location.search).get('scenario');
+const date = (value, withTime = true) => {
+  if (!value || !Number.isFinite(Date.parse(value))) return 'Não informado';
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', ...(withTime ? { timeStyle: 'short' } : {}), timeZone: 'America/Sao_Paulo' }).format(new Date(value));
+};
+const setText = (selector, value) => $$(selector).forEach((node) => { node.textContent = value; });
+const profileLink = (row) => `/jogador?id=${encodeURIComponent(row.profile_id)}`;
+const stateBadge = (value) => { const state = lifeState(value); return `<span class="state-pill ${state.className}">${state.label}</span>`; };
+const avatarAttributes = (row) => { const avatar = characterAvatar(row); return `src="${safe(avatar.src)}" data-avatar-fallback="${safe(avatar.fallback)}" title="${safe(avatar.label)}"`; };
 
-function formatDuration(seconds) {
-  const value = Number(seconds);
-  if (!hasNumber(seconds)) return '—';
-  const days = Math.floor(value / 86400);
-  const hours = Math.floor((value % 86400) / 3600);
-  if (days) return `${days}d ${hours}h`;
-  const minutes = Math.floor((value % 3600) / 60);
-  return `${hours}h ${minutes}m`;
-}
-
-function formatDate(value, withTime = false) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'não registrada';
-  return new Intl.DateTimeFormat('pt-BR', withTime
-    ? { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }
-    : { dateStyle: 'medium', timeZone: 'America/Sao_Paulo' }).format(date);
-}
-
-function safe(value) {
-  const node = document.createElement('span');
-  node.textContent = String(value ?? '');
-  return node.innerHTML;
-}
-
-function animateNumber(element, target) {
-  if (!element || !hasNumber(target)) return;
-  const end = Number(target);
-  const started = performance.now();
-  const duration = Math.min(1400, 650 + Math.log10(Math.max(10, end)) * 200);
-  const frame = (now) => {
-    const progress = Math.min(1, (now - started) / duration);
-    const eased = 1 - Math.pow(1 - progress, 4);
-    element.textContent = formatNumber(Math.round(end * eased));
-    if (progress < 1) requestAnimationFrame(frame);
-  };
-  requestAnimationFrame(frame);
-}
-
-function setupNavigation() {
-  const header = $('[data-header]');
-  const menu = $('[data-menu]');
-  const open = $('[data-menu-open]');
-  const close = $('[data-menu-close]');
-  if (header) addEventListener('scroll', () => header.classList.toggle('is-scrolled', scrollY > 18), { passive: true });
-  if (!menu || !open || !close) return;
-  let previousFocus = null;
-  const focusable = () => $$('a,button:not([disabled])', menu);
-  const toggle = (visible) => {
-    menu.classList.toggle('is-open', visible);
-    menu.setAttribute('aria-hidden', String(!visible));
-    open.setAttribute('aria-expanded', String(visible));
-    document.body.classList.toggle('menu-open', visible);
-    if (visible) {
-      previousFocus = document.activeElement;
-      setTimeout(() => close.focus(), 60);
-    } else previousFocus?.focus?.();
-  };
-  open.addEventListener('click', () => toggle(true));
-  close.addEventListener('click', () => toggle(false));
-  $$('a', menu).forEach((link) => link.addEventListener('click', () => toggle(false)));
-  addEventListener('keydown', (event) => {
-    if (!menu.classList.contains('is-open')) return;
-    if (event.key === 'Escape') toggle(false);
-    if (event.key !== 'Tab') return;
-    const items = focusable();
-    const first = items[0];
-    const last = items.at(-1);
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+function decorateLinks() {
+  if (!['offline', 'empty', 'stale', 'no-champion', 'server-offline', 'server-unknown', 'advanced', 'achievements'].includes(scenario)) return;
+  $$('a[href]').forEach((link) => {
+    if (link.closest('.demo-banner')) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin === location.origin && !url.pathname.startsWith('/api/')) {
+      url.searchParams.set('scenario', scenario);
+      link.href = url.pathname + url.search + url.hash;
+    }
   });
 }
 
-function setupMotion() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) entry.target.classList.add('is-visible');
-    });
-  }, { threshold: .14 });
-  $$('[data-reveal]').forEach((element) => observer.observe(element));
+function showDemo() {
+  if (isDemo) return;
+  isDemo = true;
+  const banner = document.createElement('div');
+  banner.className = 'demo-banner';
+  banner.setAttribute('role', 'note');
+  banner.innerHTML = '<b>DEMONSTRAÇÃO LOCAL</b><span>Personagens e estatísticas fictícios.</span><details><summary>Cenários de teste</summary><div><a href="/index.html">Normal</a><a href="/ranking?scenario=empty">Sem dados</a><a href="/ranking?scenario=offline">Falha de consulta</a><a href="/ranking?scenario=stale">Desatualizado</a><a href="/ranking?scenario=no-champion">Sem campeão</a><a href="/index.html?scenario=server-offline#servidor">Servidor offline</a><a href="/index.html?scenario=server-unknown#servidor">Status indisponível</a><a href="/ranking?scenario=advanced#sobreviventes">Métricas futuras fictícias</a><a href="/ranking?scenario=achievements#sobreviventes">Motor de conquistas local</a></div></details>';
+  document.body.prepend(banner);
+  document.body.classList.add('is-demo');
+  const updateHeight = () => document.documentElement.style.setProperty('--demo-height', `${banner.getBoundingClientRect().height}px`);
+  updateHeight();
+  new ResizeObserver(updateHeight).observe(banner);
+}
 
-  $$('[data-parallax-stage]').forEach((stage) => {
-    const targets = $$('[data-parallax]', stage);
-    stage.addEventListener('pointermove', (event) => {
-      const rect = stage.getBoundingClientRect();
-      const x = event.clientX - rect.left - rect.width / 2;
-      const y = event.clientY - rect.top - rect.height / 2;
-      targets.forEach((target) => {
-        const amount = Number(target.dataset.parallax || .02);
-        target.style.translate = `${x * amount}px ${y * amount}px`;
-      });
-    });
-    stage.addEventListener('pointerleave', () => targets.forEach((target) => { target.style.translate = '0 0'; }));
-  });
-
-  $$('[data-tilt]').forEach((element) => {
-    element.addEventListener('pointermove', (event) => {
-      const rect = element.getBoundingClientRect();
-      const rx = ((event.clientY - rect.top) / rect.height - .5) * -5;
-      const ry = ((event.clientX - rect.left) / rect.width - .5) * 7;
-      element.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-    });
-    element.addEventListener('pointerleave', () => { element.style.transform = ''; });
-  });
+async function request(path) {
+  const url = new URL(path, location.origin);
+  if (['offline', 'empty', 'stale', 'no-champion', 'server-offline', 'server-unknown', 'advanced', 'achievements'].includes(scenario)) url.searchParams.set('scenario', scenario);
+  const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const data = await response.json();
+  if (data.demo) showDemo();
+  if (!response.ok) throw new Error(data.error || data.message || 'Não foi possível consultar os registros.');
+  return data;
 }
 
 function showToast(message) {
@@ -114,380 +62,302 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add('is-visible');
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('is-visible'), 2200);
+  showToast.timer = setTimeout(() => toast.classList.remove('is-visible'), 3500);
 }
 
-function setupCopies() {
-  $$('[data-copy]').forEach((button) => button.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(button.dataset.copy);
-      showToast('Endereço copiado. Boa sorte lá fora.');
-    } catch {
-      showToast(`Copie: ${button.dataset.copy}`);
+function setupNavigation() {
+  const updateActive = () => $$('[data-nav]').forEach((link) => {
+    const page = location.hash === '#sobreviventes' ? 'survivors' : location.hash === '#servidor' ? 'server' : document.body.dataset.page;
+    const active = link.dataset.nav === page;
+    link.classList.toggle('is-active', active);
+    if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+  });
+  updateActive();
+  addEventListener('hashchange', updateActive);
+  const menu = $('[data-menu]');
+  const open = $('[data-menu-open]');
+  if (!menu || !open) return;
+  const toggle = (visible) => {
+    menu.classList.toggle('is-open', visible);
+    menu.setAttribute('aria-hidden', String(!visible));
+    open.setAttribute('aria-expanded', String(visible));
+    document.body.classList.toggle('menu-open', visible);
+    (visible ? $('[data-menu-close]') : open)?.focus();
+  };
+  open.addEventListener('click', () => toggle(true));
+  $('[data-menu-close]').addEventListener('click', () => toggle(false));
+  $$('a', menu).forEach((link) => link.addEventListener('click', () => toggle(false)));
+  addEventListener('keydown', (event) => {
+    if (!menu.classList.contains('is-open')) return;
+    if (event.key === 'Escape') toggle(false);
+    if (event.key === 'Tab') {
+      const items = $$('a,button', menu); const first = items[0]; const last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
-  }));
+  });
 }
 
-async function loadServerStatus() {
+async function loadStatus() {
   try {
-    const response = await fetch('/api/status');
-    if (!response.ok) throw new Error('Status indisponível');
-    const data = await response.json();
-    $$('[data-server-state]').forEach((element) => {
-      element.textContent = data.online ? 'ONLINE' : 'OFFLINE';
-      element.classList.toggle('alive', data.online);
-      element.classList.toggle('dead', !data.online);
+    const payload = await request('/api/status');
+    setText('[data-server-state]', payload.online === true ? (payload.demo ? 'Online · demo' : 'Online') : payload.online === false ? (payload.demo ? 'Offline · demo' : 'Offline') : 'Indisponível');
+    setText('[data-server-players]', `${formatNumber(payload.players)} / ${formatNumber(payload.maxPlayers)}`);
+    setText('[data-server-latency]', hasNumber(payload.latencyMs) ? `${formatNumber(payload.latencyMs)} ms` : '—');
+    setText('[data-server-last-valid]', payload.lastValidAt ? date(payload.lastValidAt) : 'Não disponível');
+    setText('[data-server-checked]', payload.checkedAt ? date(payload.checkedAt) : 'Não disponível');
+    setText('[data-server-ip]', payload.demo ? 'Endereço desativado na prévia' : payload.ip || 'Não informado');
+    setText('[data-server-ddns]', payload.demo ? 'Demonstração sem conexão' : payload.ddns || 'Não informado');
+    $$('[data-status-orb]').forEach((orb) => { orb.classList.toggle('is-online', payload.online === true); orb.classList.toggle('is-offline', payload.online === false); orb.classList.toggle('is-unknown', typeof payload.online !== 'boolean'); });
+    $$('[data-copy-source]').forEach((button) => {
+      const value = payload[button.dataset.copySource];
+      button.disabled = payload.demo || !value;
+      button.onclick = async () => { try { await navigator.clipboard.writeText(value); showToast('Endereço copiado. Nos vemos do outro lado.'); } catch { showToast(`Copie: ${value}`); } };
     });
-    $$('[data-server-players]').forEach((element) => { element.textContent = `${data.players} / ${data.maxPlayers}`; });
-    $$('[data-server-latency]').forEach((element) => { element.textContent = data.latencyMs ? `${data.latencyMs} ms` : '—'; });
-    $$('[data-status-orb]').forEach((element) => element.classList.add(data.online ? 'is-online' : 'is-offline'));
-
-    // Exibir quem está online agora
-    const onlineBox = $('[data-online-players-box]');
-    const onlineList = $('[data-online-players-list]');
-    if (onlineBox && onlineList) {
-      if (Array.isArray(data.playerList) && data.playerList.length) {
-        onlineBox.style.display = 'block';
-        onlineList.innerHTML = data.playerList.map((p) => {
-          const avatar = p.avatar_url || '/assets/winx-zomboid-profile.webp';
-          const cleanName = p.name ? p.name.trim().replace(/\s+/g, '') : '';
-          const steamLink = cleanName ? `https://steamcommunity.com/id/${encodeURIComponent(cleanName)}` : '#';
-          return `
-            <a href="${safe(steamLink)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;padding:6px 10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;text-decoration:none;font-size:10px" title="Conectado há ${formatDuration(p.durationSec)}">
-              <img src="${safe(avatar)}" alt="" onerror="this.src='/assets/winx-zomboid-profile.webp'" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid var(--pink)">
-              <b>${safe(p.name)}</b>
-              <span style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)"></span>
-            </a>
-          `;
-        }).join('');
-      } else {
-        onlineBox.style.display = 'none';
-      }
+    const box = $('[data-online-players-box]');
+    if (box) {
+      const players = payload.playerListVerified === true && Array.isArray(payload.playerList) ? payload.playerList : [];
+      box.hidden = !players.length;
+      $('[data-online-players-list]').innerHTML = players.map((p) => `<span class="online-pill">● ${safe(p.name)}</span>`).join('');
     }
   } catch {
-    $$('[data-server-state]').forEach((element) => { element.textContent = 'INDISPONÍVEL'; });
-    $$('[data-status-orb]').forEach((element) => element.classList.add('is-offline'));
+    $$('[data-status-orb]').forEach((orb) => { orb.classList.remove('is-online', 'is-offline'); orb.classList.add('is-unknown'); });
+    setText('[data-server-state]', 'Indisponível');
+    setText('[data-server-players]', '— / —');
+    setText('[data-server-latency]', '—');
+    setText('[data-server-checked]', 'Consulta indisponível');
+    setText('[data-server-ip]', 'Não foi possível consultar');
+    setText('[data-server-ddns]', 'Não foi possível consultar');
+    if ($('[data-online-players-box]')) $('[data-online-players-box]').hidden = true;
+    $$('[data-copy-source]').forEach((button) => { button.disabled = true; });
   }
 }
 
-function updateLeader(leader, root = document) {
-  if (!leader) return;
-  const name = $('[data-leader-name]', root);
-  const kills = $('[data-leader-kills]', root);
-  const time = $('[data-leader-time]', root);
-  if (name) name.textContent = leader.steam_username || leader.character_name;
-  if (kills) animateNumber(kills, leader.kills_total);
-  if (time) time.textContent = formatDuration(leader.survival_seconds);
-  const link = $('[data-leader-profile]', root);
-  if (link) link.href = `/jogador?id=${encodeURIComponent(leader.profile_id)}`;
-
-  // Atualizar foto de perfil do Líder
-  const leaderImg = $('.leader-portrait img', root);
-  if (leaderImg) {
-    leaderImg.src = leader.avatar_url || '/assets/winx-zomboid-profile.webp';
-    leaderImg.onerror = () => { leaderImg.src = '/assets/winx-zomboid-profile.webp'; };
-  }
-}
-
-function renderSideRanking(payload) {
-  const list = $('[data-ranking-list]');
-  const sync = $('[data-ranking-sync]');
-  if (!list || !sync) return;
-  const ranking = payload.ranking || [];
-  if (ranking.length) {
-    updateLeader(ranking[0]);
-    list.innerHTML = ranking.slice(1, 5).map((player, index) => {
-      const displayName = player.steam_username || player.character_name;
-      const subText = player.steam_username && player.character_name !== player.steam_username
-        ? `${player.character_name} · ${player.alive === false ? 'MORTO' : 'VIVO'}`
-        : (player.alive === false ? 'PERSONAGEM MORTO' : 'SOBREVIVENDO');
-      const avatarSrc = player.avatar_url || '/assets/winx-zomboid-profile.webp';
-      return `
-      <li>
-        <span class="place"><b>${index + 2}</b></span>
-        <span class="player-meta"><strong style="display:flex;align-items:center;gap:6px"><img src="${safe(avatarSrc)}" alt="" onerror="this.src='/assets/winx-zomboid-profile.webp'" style="width:16px;height:16px;border-radius:2px;object-fit:cover">${safe(displayName)}</strong><small>${safe(subText)}</small></span>
-        <span class="kill-count"><b>${formatNumber(player.kills_total)}</b><small>KILLS</small></span>
-      </li>`;
-    }).join('') || '<li class="ranking-message">Ainda não há outros classificados nesta temporada.</li>';
-  } else {
-    list.innerHTML = `<li class="ranking-message">${safe(payload.message || 'Nenhuma estatística validada disponível.')}</li>`;
-  }
-  if (payload.sync?.last_success_at) {
-    sync.innerHTML = `<span class="sync-dot"></span>ATUALIZADO EM ${safe(formatDate(payload.sync.last_success_at, true))}`;
-  } else {
-    sync.innerHTML = '<span class="sync-dot"></span>COLETA AINDA NÃO SINCRONIZADA';
-  }
-  sync.classList.toggle('is-stale', Boolean(payload.stale));
-}
-
-async function getRanking() {
-  const response = await fetch('/api/ranking');
-  if (!response.ok) throw new Error('ranking unavailable');
-  return response.json();
-}
-
-async function loadSideRanking() {
-  if (!$('[data-ranking-list]')) return;
-  try { renderSideRanking(await getRanking()); }
-  catch { renderSideRanking({ ranking: [], message: 'Não foi possível consultar o ranking agora.' }); }
-}
-
-function rankingRow(player, index) {
-  const displayName = player.steam_username || player.character_name;
-  const subText = player.steam_username && player.character_name !== player.steam_username
-    ? `${player.character_name} · ${player.alive === false ? 'MORTO' : 'VIVO'}`
-    : (player.alive === false ? 'PERSONAGEM MORTO' : 'SOBREVIVENDO');
-
-  const avatarSrc = player.avatar_url || '/assets/winx-zomboid-profile.webp';
-  const rankNumber = player.rank_position || (typeof index === 'number' ? index + 1 : '—');
-  const dateStr = player.died_at ? `Morte: ${formatDate(player.died_at, true)}` : formatDate(player.last_updated_at, true);
-
-  return `<tr>
-    <td><span class="rank-no ${Number(rankNumber) <= 3 ? 'top' : ''}">${String(rankNumber).padStart(2, '0')}</span></td>
-    <td><div class="player-cell"><img class="player-avatar" src="${safe(avatarSrc)}" alt="" onerror="this.src='/assets/winx-zomboid-profile.webp'"><span><a href="/jogador?id=${encodeURIComponent(player.profile_id)}">${safe(displayName)}</a><small>${safe(subText)}</small></span></div></td>
-    <td>${formatNumber(player.kills_total)}</td>
-    <td>${formatNumber(player.kills_firearm)}</td>
-    <td>${formatNumber(player.kills_melee)}</td>
-    <td>${formatDuration(player.survival_seconds)}</td>
-    <td class="${player.alive === false ? 'dead' : 'alive'}">${player.alive === false ? 'MORTO' : 'VIVO'}</td>
-    <td>${safe(dateStr)}</td>
-  </tr>`;
-}
-
-function renderFullRanking(payload) {
-  const body = $('[data-ranking-body]');
-  if (!body) return;
-  const ranking = payload.ranking || [];
-  body.innerHTML = ranking.length
-    ? ranking.map(rankingRow).join('')
-    : `<tr class="table-empty"><td colspan="8">${safe(payload.message || 'Nenhuma estatística validada disponível.')}<br>O site não cria números fictícios enquanto o extrator não confirmar os dados.</td></tr>`;
-  updateLeader(ranking[0]);
-  $('[data-season-name]').textContent = ranking[0]?.season_name || 'Temporada aguardando início';
-  $('[data-season-state]').textContent = payload.state === 'ready' ? 'DISPUTA EM ANDAMENTO' : 'RANKING EM PREPARAÇÃO';
-  const warning = $('[data-sync-warning]');
-  if (warning && payload.stale) {
-    warning.textContent = `A última sincronização foi em ${formatDate(payload.sync?.last_success_at, true)}. Os dados podem estar desatualizados.`;
-    warning.classList.add('is-visible');
-  }
-  $$('[data-needs-kills]').forEach((button) => { button.disabled = !ranking.some((item) => hasNumber(item.kills_total)); });
-  $$('[data-needs-time]').forEach((button) => { button.disabled = !ranking.some((item) => hasNumber(item.survival_seconds)); });
-  renderSeasons(payload.seasons || []);
-  setupRankingFilters(ranking, payload.graveyard || [], body);
-}
-
-function setupRankingFilters(ranking, graveyard, body) {
-  let currentFilter = 'kills';
-  let searchTerm = '';
-
-  const searchInput = $('[data-ranking-search]');
-  if (searchInput) {
-    searchInput.oninput = (e) => {
-      searchTerm = (e.target.value || '').trim().toLowerCase();
-      applyFilters();
-    };
-  }
-
-  function applyFilters() {
-    let result = currentFilter === 'dead' ? [...graveyard] : [...ranking];
-
-    if (searchTerm) {
-      result = result.filter((p) => {
-        const steam = (p.steam_username || '').toLowerCase();
-        const char = (p.character_name || '').toLowerCase();
-        return steam.includes(searchTerm) || char.includes(searchTerm);
-      });
-    }
-
-    if (currentFilter === 'time') {
-      result.sort((a, b) => (b.survival_seconds ?? -1) - (a.survival_seconds ?? -1));
-    } else if (currentFilter === 'alive') {
-      result = result.filter((item) => item.alive !== false);
-    } else if (currentFilter === 'dead') {
-      result.sort((a, b) => new Date(b.died_at || 0) - new Date(a.died_at || 0));
-    } else {
-      result.sort((a, b) => (b.kills_total ?? -1) - (a.kills_total ?? -1));
-    }
-
-    body.innerHTML = result.length
-      ? result.map(rankingRow).join('')
-      : '<tr class="table-empty"><td colspan="8">Nenhum jogador encontrado para os critérios selecionados.</td></tr>';
-  }
-
-  $$('[data-filter]').forEach((button) => {
-    button.onclick = () => {
-      if (button.disabled) return;
-      $$('[data-filter]').forEach((item) => item.classList.toggle('is-active', item === button));
-      currentFilter = button.dataset.filter;
-      applyFilters();
-    };
+function updateLeader(row, unavailable = false) {
+  setText('[data-leader-name]', row?.steam_username || row?.character_name || (unavailable ? 'Consulta indisponível' : 'Aguardando desafiante'));
+  setText('[data-leader-account]', row?.character_name ? `PERSONAGEM / ${row.character_name}` : unavailable ? 'Não foi possível consultar o líder' : 'Nenhuma estatística validada disponível');
+  setText('[data-leader-position]', row?.rank_position || '—');
+  $$('.leader-portrait img, [data-leader-avatar]').forEach((image) => {
+    if (row) { const avatar = characterAvatar(row); image.dataset.avatarFallback = avatar.fallback; image.title = avatar.label; image.src = avatar.src; }
+    else { delete image.dataset.avatarFallback; image.removeAttribute('title'); image.src = '/assets/winx-zomboid-profile.webp'; }
   });
+  setText('[data-leader-kills]', formatNumber(row?.kills_total));
+  setText('[data-leader-time]', formatDuration(row?.survival_seconds));
+  $$('[data-leader-profile]').forEach((link) => { link.href = row ? profileLink(row) : '/ranking'; link.setAttribute('aria-disabled', String(!row)); });
+}
+
+function rankingRow(row, showDistance = false) {
+  const position = hasNumber(row.rank_position) ? row.rank_position : '—';
+  const observed = memorialDate(row);
+  return `<tr><td><span class="rank-no ${Number(position) <= 3 ? 'top' : ''}">${safe(position === '—' ? position : String(position).padStart(2, '0'))}</span></td>
+    <td><div class="player-cell"><img class="player-avatar" ${avatarAttributes(row)} alt="" loading="lazy"><span><a href="${profileLink(row)}">${safe(row.character_name || 'Nome não informado')}</a><small>Jogador / ${safe(row.steam_username || 'Não informado')}</small></span></div></td>
+    <td><b>${formatNumber(row.kills_total)}</b></td><td>${formatNumber(row.kills_firearm)}</td><td>${formatNumber(row.kills_melee)}</td><td>${formatDuration(row.survival_seconds)}</td>${showDistance ? `<td>${row.life_identity_verified === true && row.distance_unit === "meters" && hasNumber(row.distance_total_m) ? `${formatNumber(Number(row.distance_total_m)/1000)} km` : "—"}</td>` : ""}<td>${stateBadge(row.alive)}</td><td class="record-date"><small>${observed.label}</small><time>${safe(date(observed.value))}</time></td></tr>`;
+}
+
+function renderTable() {
+  const body = $('[data-ranking-body]');
+  if (!body || !rankingPayload) return;
+  const unavailable = filters.filter === 'dead' && rankingPayload.graveyard_state !== 'ready';
+  const rows = filterRanking(rankingPayload.ranking || [], rankingPayload.graveyard || [], filters);
+  const hasDistance = rows.some(row=>row.life_identity_verified === true && row.distance_unit === 'meters' && hasNumber(row.distance_total_m));
+  const distanceHeading = $('[data-distance-heading]'); if (distanceHeading) distanceHeading.hidden=!hasDistance;
+  body.closest('.ranking-board')?.classList.toggle('has-distance',hasDistance);
+  body.innerHTML = unavailable ? '<tr><td colspan="8" class="table-empty">O cemitério não pôde ser consultado. A integração SQL v2 pode estar pendente. Nenhuma morte foi inferida.</td></tr>'
+    : rows.length ? rows.map(row=>rankingRow(row,hasDistance)).join('')
+      : `<tr><td colspan="8" class="table-empty">${safe(rankingPayload.message || 'Nenhum registro para os critérios selecionados.')}</td></tr>`;
+  setText('[data-ranking-count]', unavailable ? ' / indisponível' : ` / ${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}`);
+  $$('[data-filter]').forEach((button) => { const active = filters.filter === button.dataset.filter; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active)); });
+  decorateLinks();
 }
 
 function renderSeasons(seasons) {
   const container = $('[data-season-history]');
   if (!container) return;
-  container.innerHTML = seasons.length ? seasons.map((season) => `
-    <article class="season-card">
-      <small>${safe(season.status === 'closed' ? 'TEMPORADA ENCERRADA' : 'TEMPORADA ATUAL')}</small>
-      <h3>${safe(season.name)}</h3>
-      <p>${season.winner_name ? `Campeão: <b>${safe(season.winner_name)}</b>` : 'Campeão ainda não definido.'}</p>
-      <p>${season.ended_at ? `Encerrada em ${safe(formatDate(season.ended_at))}` : 'Em andamento.'}</p>
-    </article>`).join('') : '<article class="season-card"><small>ARQUIVO</small><h3>Nenhuma temporada encerrada</h3><p>Os futuros campeões aparecerão aqui sem apagar as temporadas anteriores.</p></article>';
+  const closed = seasons.filter((season) => season.status === 'closed');
+  container.innerHTML = closed.length ? closed.map((season) => `<article class="season-card"><small>TEMPORADA ENCERRADA${season.outcome === 'apocalypse' ? ' · SEM CAMPEÃO' : ''}</small><h3>${safe(season.name)}</h3><p class="winner">${safe(seasonResult(season))}</p><p>Encerrada em ${safe(date(season.ended_at, false))}</p></article>`).join('')
+    : '<article class="season-card"><small>ARQUIVO PRESERVADO</small><h3>A história está começando.</h3><p>Nenhuma temporada encerrada disponível. Os futuros campeões aparecerão aqui.</p></article>';
 }
 
-async function loadFullRanking() {
-  if (!$('[data-ranking-body]')) return;
-  try { renderFullRanking(await getRanking()); }
-  catch { renderFullRanking({ ranking: [], seasons: [], message: 'O ranking está temporariamente indisponível.' }); }
+function renderMemorial() {
+  const grid = $('[data-memorial-grid]');
+  if (!grid || !rankingPayload) return;
+  if (rankingPayload.graveyard_state !== 'ready') {
+    grid.innerHTML = '<p class="error-box">Não foi possível consultar o memorial. A integração SQL v2 pode estar pendente. Tente novamente mais tarde.</p>';
+    return;
+  }
+  const all = (rankingPayload.graveyard || []).filter((row) => row.alive === false);
+  const categories = $('[data-memorial-categories]');
+  if (categories) categories.innerHTML = memorialCategories.map(category => {
+    const result = rankingPayload.memorial_honors?.find(row=>row.metric===category.metric);
+    const ready = result?.state==='ready' && Array.isArray(result.winners) && result.winners.length && hasNumber(result.value);
+    const value = ready ? result.unit==='meters' ? `${formatNumber(Number(result.value)/1000)} km` : result.unit==='world_days' ? `${formatNumber(result.value)} dias no mundo` : `${formatNumber(result.value)} kills na vida` : '';
+    return `<article><small>${ready ? 'HOMENAGEM COMPROVADA' : 'RECONHECIMENTO PENDENTE'}</small><h2>${safe(category.title)}</h2>${ready ? `<p>${result.winners.length>1 ? 'Empate · ' : ''}${result.winners.map(row=>UUID.test(row.profile_id || '') ? `<a class="text-link" href="${profileLink(row)}">${safe(row.character_name)}</a>` : safe(row.character_name)).join(' · ')}</p><b>${safe(value)}</b>` : `<p>${safe(category.reason)}</p>`}</article>`;
+  }).join('');
+  const rows = all.filter((row) => `${row.character_name} ${row.steam_username}`.toLocaleLowerCase('pt-BR').includes(memorialSearch.toLocaleLowerCase('pt-BR')));
+  setText('[data-memorial-count]', ` / ${rows.length}`);
+  grid.innerHTML = rows.length ? rows.map((row) => {
+    const observed = memorialDate(row);
+    const identified = typeof row.profile_id === 'string' && UUID.test(row.profile_id);
+    return `<article class="memorial-card"><div class="memorial-card-top"><div class="memorial-stone" aria-hidden="true"><span>✦</span><b>EM MEMÓRIA</b><small>${identified ? safe(row.profile_id.slice(-6).toUpperCase()) : 'SEM ID'}</small></div></div><div class="memorial-card-body"><small>REGISTRO PRESERVADO · MORTO</small><h3>${safe(row.character_name || 'Nome não informado')}</h3><p class="memorial-account">Jogador / ${safe(row.steam_username || 'Não informado')}</p><div class="memorial-numbers"><div><b>${formatNumber(row.kills_total)}</b><small>KILLS / ${safe(row.season_name || 'TEMPORADA NÃO INFORMADA')}</small></div><div><b>${formatDuration(row.survival_seconds)}</b><small>TEMPO JOGADO REGISTRADO</small></div></div><div class="memorial-foot"><span class="memorial-date"><small>${observed.label}</small><time>${safe(date(observed.value, false))}</time></span>${identified ? `<a href="${profileLink(row)}">Ver dossiê ↗</a>` : '<span>Dossiê indisponível</span>'}</div><p class="identity-note">${identified ? `Registro ${safe(row.profile_id.slice(-8))}` : 'Identificador não informado'} · vida individual ainda não validada</p>${isDemo ? '<span class="memorial-demo">PERSONAGEM E ESTATÍSTICAS FICTÍCIOS</span>' : ''}</div></article>`;
+  }).join('')
+    : '<p class="error-box">Nenhum registro de personagem morto encontrado para esta consulta.</p>';
+  decorateLinks();
+}
+
+function renderSurvivors() {
+  const grid = $('[data-survivor-grid]');
+  if (!grid || !rankingPayload) return;
+  const rows = rankingPayload.ranking || [];
+  grid.innerHTML = rows.length ? rows.map((row) => `<a class="survivor-card dossier-shortcut" href="${profileLink(row)}"><img ${avatarAttributes(row)} alt="" loading="lazy"><div><small>DOSSIÊ INDIVIDUAL</small><h3>${safe(row.character_name)}</h3><p>Combate · tempo jogado · evolução</p></div><span aria-hidden="true">↗</span></a>`).join('') : '<p class="page-intro">Nenhum personagem vivo classificado disponível nesta consulta.</p>';
+}
+
+async function loadRanking() {
+  if (!$('[data-ranking-list]') && !$('[data-ranking-body]') && !$('[data-memorial-grid]')) return;
+  try {
+    const payload = await request('/api/ranking');
+    if (!Array.isArray(payload.ranking) || !Array.isArray(payload.seasons)) throw new Error('Resposta de classificação inválida.');
+    payload.ranking = livingRanking(payload.ranking);
+    rankingPayload = payload;
+    updateLeader(payload.ranking[0]);
+    const side = $('[data-ranking-list]');
+    if (side) side.innerHTML = payload.ranking.slice(1, 5).map((row) => `<li><span class="place">${safe(String(row.rank_position).padStart(2, '0'))}</span><a class="player-meta" href="${profileLink(row)}"><strong>${safe(row.character_name)}</strong><small>${safe(row.steam_username)} · ${lifeState(row.alive).label}</small></a><span class="kill-count">${formatNumber(row.kills_total)}<small>KILLS</small></span></li>`).join('') || '<li class="skeleton">Nenhum outro classificado nesta temporada.</li>';
+    const season = payload.seasons.find((entry) => entry.status === 'active');
+    setText('[data-season-name]', season?.name || 'Nenhuma temporada ativa');
+    setText('[data-season-state]', season ? 'Disputa em andamento' : 'Aguardando próxima temporada');
+    setText('[data-ranking-sync]', payload.sync?.last_success_at ? `${payload.demo ? 'Leitura fictícia' : 'Última coleta'} / ${date(payload.sync.last_success_at)}` : 'Coleta ainda não sincronizada');
+    setText('[data-ranking-refreshed]', `Dados recebidos pela página / ${date(new Date().toISOString())}`);
+    const warning = $('[data-sync-warning]');
+    if (warning) { warning.hidden = !payload.stale; warning.textContent = payload.sync?.latest_attempt_status === "failed" ? `A última tentativa de coleta falhou. Último sucesso: ${date(payload.sync?.last_success_at)}.` : payload.sync?.latest_attempt_status === "running" ? `Coleta em andamento. Exibindo o último sucesso: ${date(payload.sync?.last_success_at)}.` : `A fonte informa dados desatualizados. Última coleta: ${date(payload.sync?.last_success_at)}.`; }
+    $$('[data-ranking-sync]').forEach((node) => node.classList.toggle('is-stale', Boolean(payload.stale)));
+    renderTable(); renderSurvivors(); renderSeasons(payload.seasons); renderMemorial(); decorateLinks();
+  } catch (error) {
+    rankingPayload = null;
+    setText('[data-ranking-count]', ' / indisponível');
+    if ($('[data-distance-heading]')) $('[data-distance-heading]').hidden=true;
+    setText('[data-memorial-count]', ' / indisponível');
+    updateLeader(null, true);
+    setText('[data-ranking-sync]', 'Consulta indisponível. Não foi possível verificar a última coleta.');
+    setText('[data-ranking-refreshed]', 'Atualização dos dados indisponível');
+    if ($('[data-survivor-grid]')) $('[data-survivor-grid]').innerHTML = `<p class="error-box">${safe(error.message)}</p>`;
+    if ($('[data-ranking-list]')) $('[data-ranking-list]').innerHTML = `<li class="skeleton">${safe(error.message)}</li>`;
+    if ($('[data-ranking-body]')) $('[data-ranking-body]').innerHTML = `<tr><td colspan="8" class="table-empty">${safe(error.message)} Use “Atualizar” para tentar novamente.</td></tr>`;
+    if ($('[data-memorial-categories]')) $('[data-memorial-categories]').innerHTML = '<p class="dossier-note">Homenagens indisponíveis nesta consulta.</p>';
+    if ($('[data-memorial-grid]')) $('[data-memorial-grid]').innerHTML = `<p class="error-box">${safe(error.message)}</p>`;
+    setText('[data-season-name]', 'Consulta indisponível'); setText('[data-season-state]', 'Tente novamente');
+    if ($('[data-season-history]')) $('[data-season-history]').innerHTML = '<p class="error-box">Temporadas indisponíveis nesta consulta.</p>';
+  }
+}
+
+function renderPlayer(payload) {
+  const { profile, history = [] } = payload;
+  const lifeHistory = payload.achievements?.identity_verified === true && payload.achievements.life_history?.length ? payload.achievements.life_history : null;
+  const root = $('[data-player-root]');
+  const detailsOpen = $('[data-history-details]', root)?.open === true;
+  const achievementsOpen = $('[data-achievement-details]', root)?.open === true;
+  const achievementCategory = $('[data-achievement-filter]', root)?.value || 'all';
+  const achievementFilterFocused = document.activeElement?.matches('[data-achievement-filter]');
+  const refreshFocused = document.activeElement?.matches('[data-player-refresh]');
+  const state = lifeState(profile.alive);
+  const badge = hasNumber(profile.kills_total) && profile.kills_total >= 1000 ? 'Mil eliminações na temporada' : hasNumber(profile.kills_total) && profile.kills_total >= 100 ? 'Mais de cem eliminações na temporada' : null;
+  const lifeMetrics = payload.achievements?.identity_verified === true ? payload.achievements.life_metrics : null;
+  const values = {};
+  if (lifeMetrics) for (const [key, record] of Object.entries(lifeMetrics)) {
+    if (record && hasNumber(record.value) && Number(record.value)>=0) values[key]=Number(record.value);
+  }
+  const metrics = lifeMetrics ? profileMetrics({...values,survival_seconds:values.played_seconds},Object.keys(values)) : profileMetrics(profile, profile.validated_metrics || payload.validated_metrics);
+  if (lifeMetrics) metrics.combat = metrics.combat.map(row=>row.key==='kills_total'?{...row,label:'Kills na vida'}:row);
+
+  const metric = ({ label, value, unit = '' }) => `<div class="dossier-metric"><strong>${formatNumber(value)}${unit ? ` ${safe(unit)}` : ''}</strong><small>${safe(label)}</small></div>`;
+  const dateProfile = lifeMetrics ? {...profile,last_updated_at:payload.achievements.last_observed_at} : profile;
+  const dates = [['last_updated_at', 'Última leitura'], ['died_at', 'Morte registrada'], ['first_seen_at', 'Primeira observação']]
+    .filter(([key]) => dateProfile[key] && Number.isFinite(Date.parse(dateProfile[key])))
+    .map(([key, label]) => `<div><dt>${label}</dt><dd>${safe(date(dateProfile[key]))}</dd></div>`).join('');
+  root.innerHTML = `<a class="back-link" href="/ranking#sobreviventes">← Voltar aos sobreviventes</a>
+    <section class="profile-header"><div class="profile-avatar"><img ${avatarAttributes(profile)} alt=""></div><div><p class="eyebrow">DOSSIÊ DO SOBREVIVENTE / ${safe(profile.season_name || 'TEMPORADA NÃO INFORMADA')}</p><h1>${safe(profile.character_name || "Nome não informado")}</h1><p>Jogador: <b>${safe(profile.steam_username || 'Não informado')}</b></p>${profile.rank_position ? `<span class="profile-position">POSIÇÃO NESTA TEMPORADA / #${safe(profile.rank_position)}</span>` : '<span class="profile-position">SEM POSIÇÃO NESTA TEMPORADA</span>'}</div><button class="refresh-button" data-player-refresh>↻ Atualizar registro</button></section>
+    <div class="profile-badges">${stateBadge(profile.alive)}${badge ? `<span class="profile-badge">✦ ${badge}</span>` : ''}${payload.demo ? '<span class="profile-badge">Demonstração · personagem fictício</span>' : ''}</div>
+    ${Array.isArray(payload.titles) && payload.titles.length ? `<section class="official-titles" aria-label="Títulos preservados"><h2>TÍTULOS PRESERVADOS</h2>${payload.titles.map(title => `<p><b>${safe(title.season_name)}</b> · ${safe(title.rules_version === 'winx-v1' ? 'Campeão oficial' : 'Campeão registrado nas regras anteriores')} · ${formatNumber(title.final_kills_total)} kills · ${safe(date(title.ended_at, false))}</p>`).join('')}<small>Conquistas de temporadas encerradas não dependem do estado de vida atual.</small></section>` : ''}
+    ${payload.demo && payload.future_metrics_demo ? '<p class="sync-warning">SIMULAÇÃO DE MÉTRICAS FUTURAS · Valores inteiramente fictícios para revisar a apresentação. Não extraídos do servidor.</p>' : ''}
+    ${lifeMetrics ? `<p class="dossier-note">Pontuação na temporada exibida: <b>${formatNumber(profile.kills_total)} kills</b>. Os contadores abaixo pertencem à vida verificada.</p>` : ''}
+    ${lifeMetrics && payload.achievements.season_history?.length ? `<details class="history-panel"><summary class="text-link">Participação e marcas em temporadas encerradas</summary><p class="dossier-note">Melhor pontuação oficial desta vida: ${formatNumber(payload.achievements.season_records?.best_season_kills_total)} kills. Arquivo congelado no encerramento.</p><div class="table-scroll"><table class="ranking-table"><thead><tr><th>Temporada</th><th>Posição final</th><th>Kills válidas</th><th>Estado ao encerrar</th></tr></thead><tbody>${payload.achievements.season_history.map(row=>`<tr><td>${safe(row.season_name)}</td><td>${row.rank_position ? '#'+formatNumber(row.rank_position) : 'Sem classificação'}</td><td>${formatNumber(row.kills_total)}</td><td>${row.alive_at_close ? 'Vivo' : 'Morto'}${row.outcome==='apocalypse' ? ' · O Apocalipse Venceu' : ''}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
+    <div data-achievements-root>${achievementPanel(payload.achievements,achievementCategory)}</div>
+    ${payload.demo && payload.achievements_engine_demo ? '<p class="sync-warning">MOTOR POSTGRESQL LOCAL · Vida e dados fictícios. Desbloqueios calculados pelo SQL, sem conexão com produção.</p>' : ''}
+    <div class="dossier-grid">
+      ${metrics.combat.length ? `<section class="dossier-group" aria-label="Combate"><h2><span>01 /</span>COMBATE ${lifeMetrics ? "DA VIDA" : "DA TEMPORADA"}</h2><div class="dossier-metrics">${metrics.combat.map(metric).join('')}</div><p class="dossier-note">Veículos participam do total validado. A divisão entre veículos e outras categorias só será exibida com uma fonte própria validada.</p></section>` : '<p class="error-box">Estatísticas de combate indisponíveis nesta consulta.</p>'}
+      <section class="dossier-group" aria-label="Sobrevivência"><h2><span>02 /</span>SOBREVIVÊNCIA</h2><div class="dossier-metrics"><div class="dossier-metric"><strong class="metric-state ${state.className}">${state.label}</strong><small>Estado do personagem</small></div>${metrics.recordedSeconds !== null ? `<div class="dossier-metric"><strong>${formatDuration(metrics.recordedSeconds)}</strong><small>Tempo jogado registrado</small></div>` : ''}${metrics.worldDays !== null ? metric({ label: 'Dias sobrevividos no mundo', value: metrics.worldDays }) : ''}</div>${dates ? `<dl class="dossier-dates">${dates}</dl>` : ''}<p class="dossier-note">Tempo registrado é tempo jogado da fonte; não equivale a dias sobrevividos no mundo.</p></section>
+    </div>
+    ${metrics.exploration.length ? `<section class="dossier-group exploration-group" aria-label="Exploração"><h2><span>03 /</span>EXPLORAÇÃO</h2><div class="dossier-metrics">${metrics.exploration.map(metric).join('')}</div></section>` : ''}
+    <div class="profile-layout"><section class="history-panel"><p class="eyebrow">${lifeHistory ? "HISTÓRICO / COLETAS DESTA VIDA" : "HISTÓRICO / COLETAS DA TEMPORADA"}</p><h2>Evolução registrada</h2><p class="page-intro">Até 90 coletas recentes, em ordem cronológica. Dados ausentes não são preenchidos artificialmente.</p><div data-history-root></div></section>
+      <aside class="profile-record"><h3>Arquivo do personagem</h3><p>Este dossiê pertence ao personagem indicado. Registros com o mesmo nome não são agrupados.</p><div class="record-field"><small>HISTÓRICO E IDENTIDADE</small><p>${lifeMetrics ? "Identidade desta vida validada pela origem. Conquistas não são herdadas por outras vidas." : "A identidade única de cada vida permanece em validação. Personagens anteriores e recordes pessoais só serão associados com esse vínculo comprovado."}</p></div><div class="record-field"><small>MÉTRICAS EM VALIDAÇÃO</small><p>Somente medidas com origem confirmada são exibidas. Tempo registrado não é convertido em dias no mundo.</p></div><details class="record-field"><summary>Identificador do registro</summary><code>${safe(profile.profile_id)}</code></details>${Array.isArray(payload.achievements?.related_lives) && payload.achievements.related_lives.length ? `<details><summary class="text-link">Outras vidas confirmadas deste jogador</summary>${payload.achievements.related_lives.filter(row=>UUID.test(row.profile_id || '')).map(row=>`<p><a class="text-link" href="${profileLink(row)}">${safe(row.character_name)} · ${safe(lifeState(row.alive).label)}</a></p>`).join('')}</details>` : ''}<a class="text-link" href="/memorial">Memorial dos Sobreviventes ↗</a></aside></div>`;
+  const achievementRoot = $('[data-achievements-root]', root);
+  const setupAchievementFilter = () => {
+    const select = $('[data-achievement-filter]', achievementRoot);
+    if (select) select.onchange = () => { achievementRoot.innerHTML = achievementPanel(payload.achievements,select.value); $('[data-achievement-details]',achievementRoot).open=true; setupAchievementFilter(); $('[data-achievement-filter]',achievementRoot)?.focus(); };
+  };
+  if (achievementsOpen && $('[data-achievement-details]',achievementRoot)) $('[data-achievement-details]',achievementRoot).open=true;
+  setupAchievementFilter();
+  if (achievementFilterFocused) $('[data-achievement-filter]',achievementRoot)?.focus();
+  const historyRoot = $('[data-history-root]');
+  const points = (lifeHistory || history).filter((point) => hasNumber(point.kills_total) && Number.isFinite(Date.parse(point.observed_at)));
+  if (!lifeHistory && payload.history_state !== 'ready') historyRoot.innerHTML = '<p class="error-box">O histórico não pôde ser consultado. A migração de leitura v2 pode estar pendente; o resumo acima continua disponível.</p>';
+  else if (!points.length) historyRoot.innerHTML = '<p class="page-intro">Histórico de kills ainda indisponível para esta temporada.</p>';
+  else {
+    const max = Math.max(...points.map((p) => Number(p.kills_total)), 1);
+    historyRoot.innerHTML = `<div class="chart" role="img" aria-label="${points.length} coletas: de ${formatNumber(points[0].kills_total)} a ${formatNumber(points.at(-1).kills_total)} kills. Consulte a tabela abaixo para todos os valores.">${points.map((point) => `<i class="chart-bar" aria-hidden="true" style="height:${Math.max(2, Number(point.kills_total) / max * 100)}%" title="${safe(date(point.observed_at))}: ${formatNumber(point.kills_total)} kills"></i>`).join('')}</div><div class="chart-axis"><span>${safe(date(points[0].observed_at))}</span><span>${safe(date(points.at(-1).observed_at))}</span></div><div class="history-summary"><span><b>${points.length}</b> coletas exibidas</span><span>Última amostra: <b>${formatNumber(points.at(-1).kills_total)}</b> kills</span></div><details data-history-details><summary class="text-link">Consultar valores das coletas</summary><div class="table-scroll"><table class="ranking-table"><thead><tr><th>Data</th><th>Kills</th><th>Estado</th></tr></thead><tbody>${points.map((point) => `<tr><td>${safe(date(point.observed_at))}</td><td>${formatNumber(point.kills_total)}</td><td>${lifeState(point.alive).label}</td></tr>`).join('')}</tbody></table></div></details>`;
+  }
+  $('[data-player-refresh]').onclick = () => refreshAll(true);
+  if (detailsOpen && $('[data-history-details]', root)) $('[data-history-details]', root).open = true;
+  if (refreshFocused) $('[data-player-refresh]').focus();
+  decorateLinks();
 }
 
 async function loadPlayer() {
   const root = $('[data-player-root]');
   if (!root) return;
   const id = new URLSearchParams(location.search).get('id');
-  if (!id) return showProfileError(root, 'Perfil não informado.');
   try {
-    const response = await fetch(`/api/player?id=${encodeURIComponent(id)}`);
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'Perfil indisponível.');
-    renderPlayer(root, payload);
-  } catch (error) { showProfileError(root, error.message); }
+    if (!id || !UUID.test(id)) throw new Error('Informe um perfil válido pelo ranking ou memorial.');
+    renderPlayer(await request(`/api/player?id=${encodeURIComponent(id)}`));
+  } catch (error) {
+    root.innerHTML = `<section class="profile-error"><p class="eyebrow">CONSULTA INDISPONÍVEL</p><h1>Não foi possível abrir o registro.</h1><p>${safe(error.message)}</p><button class="button button-ghost" data-player-refresh>Tentar novamente</button> <a class="button button-pink" href="/ranking">Voltar ao ranking</a></section>`;
+    $('[data-player-refresh]').onclick = () => refreshAll(true);
+    decorateLinks();
+  }
 }
 
-function showProfileError(root, message) {
-  root.innerHTML = `<div class="profile-error"><h1>Sobrevivente não encontrado</h1><p>${safe(message)}</p><a href="/ranking">Voltar ao ranking</a></div>`;
-}
-
-function computeBadges(profile) {
-  const badges = [];
-  const kills = Number(profile.kills_total || 0);
-  const firearms = Number(profile.kills_firearm || 0);
-  const melee = Number(profile.kills_melee || 0);
-  const time = Number(profile.survival_seconds || 0);
-
-  if (profile.alive) {
-    badges.push({ icon: '🛡️', title: 'Sobrevivendo', desc: 'Atualmente vivo no servidor' });
-  } else {
-    badges.push({ icon: '💀', title: 'Caído em Batalha', desc: 'Personagem sucumbiu aos zumbis' });
-  }
-
-  if (kills >= 50) {
-    badges.push({ icon: '🔥', title: 'Veterano do Apocalipse', desc: 'Mais de 50 zumbis eliminados' });
-  } else if (kills >= 10) {
-    badges.push({ icon: '⚔️', title: 'Exterminador', desc: 'Mais de 10 zumbis eliminados' });
-  }
-
-  if (firearms > 0 && firearms >= melee) {
-    badges.push({ icon: '🎯', title: 'Atirador de Elite', desc: 'Especialista em armas de fogo' });
-  } else if (melee > 0) {
-    badges.push({ icon: '🪓', title: 'Açougueiro Brutal', desc: 'Predomínio em combate corpo a corpo' });
-  }
-
-  if (time >= 7200) {
-    badges.push({ icon: '⏳', title: 'Lenda Viva', desc: 'Mais de 2 horas de sobrevivência confirmada' });
-  } else if (time >= 1800) {
-    badges.push({ icon: '🏕️', title: 'Resiliente', desc: 'Mais de 30 minutos em Knox Country' });
-  }
-
-  return badges;
-}
-
-function renderPlayer(root, { profile, history }) {
-  const displayName = profile.steam_username || profile.character_name;
-  const subCharacter = profile.steam_username && profile.character_name !== profile.steam_username
-    ? `Personagem: ${profile.character_name} · `
-    : '';
-
-  const avatarSrc = profile.avatar_url || '/assets/winx-zomboid-profile.webp';
-  const cleanSteam = profile.steam_username ? profile.steam_username.trim().replace(/\s+/g, '') : '';
-  const steamProfileUrl = cleanSteam ? `https://steamcommunity.com/id/${encodeURIComponent(cleanSteam)}` : null;
-
-  const badges = computeBadges(profile);
-  const badgesHtml = badges.map((b) => `
-    <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:4px;font-size:9px" title="${safe(b.desc)}">
-      <span style="font-size:14px">${b.icon}</span>
-      <b>${safe(b.title)}</b>
-    </div>
-  `).join('');
-
-  const steamLinkHtml = steamProfileUrl
-    ? `<a href="${safe(steamProfileUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:9px;color:var(--pink-soft);text-decoration:none;border-bottom:1px dashed var(--pink-soft)">🔗 ABRIR PERFIL NA STEAM ↗</a>`
-    : '';
-
-  root.innerHTML = `
-    <a class="back-link" href="/ranking">← VOLTAR AO RANKING</a>
-    <section class="profile-header reveal-up">
-      <div class="profile-avatar"><img src="${safe(avatarSrc)}" alt="" onerror="this.src='/assets/winx-zomboid-profile.webp'" style="width:100%;height:100%;object-fit:cover"></div>
-      <div>
-        <small>REGISTRO DE SOBREVIVENTE (STEAM)</small>
-        <h1>${safe(displayName)}</h1>
-        <p>${safe(subCharacter)}Temporada: ${safe(profile.season_name || 'não informada')} · última leitura ${safe(formatDate(profile.last_updated_at, true))}</p>
-        ${steamLinkHtml}
-      </div>
-    </section>
-    <section style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-      ${badgesHtml}
-    </section>
-    <section class="profile-stats">
-      <div class="profile-stat"><small>KILLS TOTAIS</small><strong>${formatNumber(profile.kills_total)}</strong></div>
-      <div class="profile-stat"><small>TEMPO VIVO</small><strong>${formatDuration(profile.survival_seconds)}</strong></div>
-      <div class="profile-stat"><small>POSIÇÃO</small><strong>${profile.rank_position ? `#${profile.rank_position}` : '—'}</strong></div>
-      <div class="profile-stat"><small>ESTADO</small><strong class="${profile.alive === false ? 'dead' : 'alive'}">${profile.alive === false ? 'MORTO' : 'VIVO'}</strong></div>
-    </section>
-    <section class="history-panel"><h2>Evolução registrada</h2><p class="page-intro">Cada barra representa uma coleta validada. Lacunas significam que o dado ainda não estava disponível — não são preenchidas artificialmente.</p><div class="chart" data-history-chart></div></section>`;
-  const chart = $('[data-history-chart]', root);
-  const valid = history.filter((point) => hasNumber(point.kills_total));
-  if (!valid.length) {
-    chart.innerHTML = '<p class="page-intro">Histórico de kills ainda indisponível.</p>';
-    return;
-  }
-  const max = Math.max(...valid.map((point) => Number(point.kills_total)), 1);
-  chart.innerHTML = valid.map((point, index) => `<i class="chart-bar" style="height:${Math.max(3, Number(point.kills_total) / max * 100)}%;animation-delay:${index * 22}ms" title="${safe(formatDate(point.observed_at, true))}: ${formatNumber(point.kills_total)} kills"></i>`).join('');
-}
-
-function startCronCountdown() {
-  const INTERVAL = 300; // 5 minutos do ciclo cron Railway
-
-  function update() {
-    const nowSec = Math.floor(Date.now() / 1000);
-    const elapsed = nowSec % INTERVAL;
-    const remaining = INTERVAL - elapsed;
-    const isCollecting = elapsed < 15; // primeiros 15s indicam momento exato de disparo da coleta
-
-    const mins = Math.floor(remaining / 60);
-    const secs = remaining % 60;
-    const timeFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    const displayLabel = isCollecting ? 'COLETANDO...' : timeFormatted;
-
-    $$('[data-cron-timer]').forEach((node) => {
-      node.classList.toggle('is-syncing', isCollecting);
-      const textNode = $('[data-cron-timer-text]', node) || node;
-      textNode.textContent = displayLabel;
-      node.setAttribute(
-        'title',
-        isCollecting
-          ? 'Coletor Railway disparado neste momento via cron!'
-          : `Próxima sincronização do cron Railway em ${timeFormatted}`
-      );
-    });
-  }
-
-  update();
-  setInterval(update, 1000);
+let refreshing = false;
+let initialAnchorResolved = false;
+async function refreshAll(manual = false) {
+  if (refreshing) return;
+  refreshing = true;
+  try {
+    await Promise.all([loadStatus(), loadRanking(), loadPlayer()]);
+    if (!initialAnchorResolved) {
+      initialAnchorResolved = true;
+      // A primeira resposta pode aumentar a altura do ranking e deslocar a âncora.
+      if (['#sobreviventes', '#servidor'].includes(location.hash)) {
+        await document.fonts?.ready;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start' });
+      }
+    }
+    if (manual) showToast('Consulta concluída. Confira o estado e a data informados em cada seção.');
+  } finally { refreshing = false; }
 }
 
 setupNavigation();
-setupMotion();
-setupCopies();
-loadServerStatus();
-loadSideRanking();
-loadFullRanking();
-loadPlayer();
-startCronCountdown();
 $$('[data-year]').forEach((node) => { node.textContent = new Date().getFullYear(); });
-
-setInterval(() => {
-  loadServerStatus();
-  if ($('[data-ranking-list]')) loadSideRanking();
-  if ($('[data-ranking-body]')) loadFullRanking();
-}, 120_000);
+$$('[data-filter]').forEach((button) => { button.onclick = () => { filters.filter = button.dataset.filter; renderTable(); }; });
+if ($('[data-ranking-search]')) $('[data-ranking-search]').oninput = (event) => { filters.search = event.target.value; renderTable(); };
+if ($('[data-memorial-search]')) $('[data-memorial-search]').oninput = (event) => { memorialSearch = event.target.value; renderMemorial(); };
+$$('[data-refresh]').forEach((button) => { button.onclick = () => refreshAll(true); });
+// Fallback de avatar sem handlers inline; compatível com CSP da prévia.
+document.addEventListener('error', (event) => {
+  if (!(event.target instanceof HTMLImageElement)) return;
+  const image = event.target;
+  const fallback = image.dataset.avatarFallback || '/assets/winx-zomboid-profile.webp';
+  if (image.getAttribute('src') !== fallback) image.src = fallback;
+}, true);
+request('/api/config').catch(() => {});
+decorateLinks();
+refreshAll();
+setInterval(() => { if (!document.hidden) refreshAll(); }, 120000);

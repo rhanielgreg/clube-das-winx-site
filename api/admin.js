@@ -1,12 +1,13 @@
 import { callPublicRpc, isStale } from '../lib/supabase-public.js';
-
-const DEFAULT_ADMIN_EMAIL = 'rhaniellgreg@gmail.com';
+import { validateAdminAction } from '../lib/admin-actions.js';
+import { UUID } from '../public/contracts.js';
+import { officialContractEnabled, officialContractPending } from '../lib/championship-contract.js';
 
 function getAdminConfig(env = process.env) {
   const url = env.SUPABASE_URL?.trim().replace(/\/$/, '');
   const publishableKey = (env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY)?.trim();
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  const adminEmail = (env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
+  const adminEmail = (env.ADMIN_EMAIL || '').trim().toLowerCase();
   return { url, publishableKey, serviceKey, adminEmail };
 }
 
@@ -18,7 +19,7 @@ function send(res, status, body) {
 
 export async function verifyAdminToken(token, { env = process.env } = {}) {
   const config = getAdminConfig(env);
-  if (!config.url || !config.publishableKey) {
+  if (!config.url || !config.publishableKey || !config.adminEmail) {
     return { valid: false, error: 'Configuração do Supabase ausente.' };
   }
   if (!token) {
@@ -32,6 +33,7 @@ export async function verifyAdminToken(token, { env = process.env } = {}) {
         apikey: config.publishableKey,
         Authorization: `Bearer ${token}`,
       },
+      signal: AbortSignal.timeout(6000),
     });
 
     if (!response.ok) {
@@ -43,7 +45,7 @@ export async function verifyAdminToken(token, { env = process.env } = {}) {
     if (!userEmail || userEmail !== config.adminEmail) {
       return {
         valid: false,
-        error: `Acesso negado para o e-mail ${userEmail || 'desconhecido'}. Apenas ${config.adminEmail} tem permissão de administrador.`,
+        error: 'Acesso administrativo não autorizado.',
       };
     }
 
@@ -57,7 +59,7 @@ async function callServiceRpc(name, params = {}, { env = process.env } = {}) {
   const config = getAdminConfig(env);
   if (!config.serviceKey) {
     throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY não configurada na Vercel. Configure esta variável no painel da Vercel para habilitar alterações administrativas.'
+      'Operações administrativas indisponíveis neste ambiente.'
     );
   }
 
@@ -65,10 +67,11 @@ async function callServiceRpc(name, params = {}, { env = process.env } = {}) {
     method: 'POST',
     headers: {
       apikey: config.serviceKey,
-      Authorization: `Bearer ${config.serviceKey}`,
+      ...(!config.serviceKey.startsWith('sb_') ? { Authorization: `Bearer ${config.serviceKey}` } : {}),
       'content-type': 'application/json',
     },
     body: JSON.stringify(params),
+    signal: AbortSignal.timeout(6000),
   });
 
   if (!response.ok) {
@@ -76,54 +79,6 @@ async function callServiceRpc(name, params = {}, { env = process.env } = {}) {
     throw new Error(`RPC ${name} falhou (HTTP ${response.status}): ${details}`);
   }
   return response.status === 204 ? null : response.json();
-}
-
-async function resetBaseline(seasonId, { env = process.env } = {}) {
-  const config = getAdminConfig(env);
-  if (!config.serviceKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurada na Vercel.');
-  }
-
-  const query = seasonId ? `?season_id=eq.${encodeURIComponent(seasonId)}` : '';
-  const response = await fetch(`${config.url}/rest/v1/player_statistics_current${query}`, {
-    method: 'GET',
-    headers: {
-      apikey: config.serviceKey,
-      Authorization: `Bearer ${config.serviceKey}`,
-      accept: 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Falha ao listar estatísticas da temporada para zerar baseline.');
-  }
-  const records = await response.json();
-
-  for (const record of records) {
-    const updatePayload = {
-      baseline_kills_total: 0,
-      baseline_kills_firearm: 0,
-      baseline_kills_melee: 0,
-      baseline_survival_seconds: 0,
-      kills_total: record.source_kills_total,
-      kills_firearm: record.source_kills_firearm,
-      kills_melee: record.source_kills_melee,
-      survival_seconds: record.source_survival_seconds ?? record.survival_seconds,
-    };
-    await fetch(
-      `${config.url}/rest/v1/player_statistics_current?season_id=eq.${record.season_id}&character_id=eq.${record.character_id}`,
-      {
-        method: 'PATCH',
-        headers: {
-          apikey: config.serviceKey,
-          Authorization: `Bearer ${config.serviceKey}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(updatePayload),
-      }
-    );
-  }
-  return { updated: records.length };
 }
 
 export default async function handler(req, res) {
@@ -138,10 +93,11 @@ export default async function handler(req, res) {
   const config = getAdminConfig();
 
   if (req.method === 'GET') {
+    if (!officialContractEnabled()) return send(res, 503, { error: officialContractPending });
     try {
       const [rankingResult, seasonsResult, syncResult] = await Promise.all([
         callPublicRpc('get_public_ranking', { p_limit: 250 }),
-        callPublicRpc('get_public_seasons', { p_limit: 50 }),
+        callPublicRpc('get_public_seasons_v2', { p_limit: 50 }),
         callPublicRpc('get_public_ranking_status'),
       ]);
 
@@ -161,17 +117,20 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       console.error('Falha ao carregar dados do admin:', error);
-      return send(res, 500, { error: error.message || 'Erro ao carregar dados administrativos.' });
+      return send(res, 500, { error: 'Erro ao carregar dados administrativos.' });
     }
   }
 
   if (req.method === 'POST') {
     const { action, payload = {} } = req.body || {};
+    const invalid = validateAdminAction(action, payload);
+    if (invalid) return send(res, invalid.status, { error: invalid.error });
+    if (!officialContractEnabled()) return send(res, 503, { error: officialContractPending });
 
     if (!config.serviceKey) {
       return send(res, 503, {
         error:
-          'SUPABASE_SERVICE_ROLE_KEY não encontrada no ambiente da Vercel. Adicione a chave no painel da Vercel para autorizar ações de escrita.',
+          'Escrita administrativa não habilitada neste ambiente.',
       });
     }
 
@@ -194,30 +153,26 @@ export default async function handler(req, res) {
         if (!season_id) {
           return send(res, 400, { error: 'ID da temporada é obrigatório.' });
         }
-        const closedId = await callServiceRpc('close_ranking_season', {
+        const closedResult = await callServiceRpc('close_ranking_season_v2', {
           p_season_id: season_id,
           p_winner_character_id: winner_character_id || null,
         });
+        const result = Array.isArray(closedResult) ? closedResult[0] : null;
+        if (!result || !['champion','apocalypse'].includes(result.outcome) || result.season_id !== season_id) throw new Error('Resultado oficial não confirmado');
+        if (result.outcome==='champion' && (!UUID.test(result.winner_profile_id || '') || typeof result.winner_name!=='string' || !result.winner_name.trim())
+          || result.outcome==='apocalypse' && (result.winner_profile_id!=null || result.winner_name!=null)) throw new Error('Resultado oficial inconsistente');
         return send(res, 200, {
           success: true,
-          seasonId: closedId,
-          message: 'Temporada encerrada e campeão gravado no arquivo!',
-        });
-      }
-
-      if (action === 'reset_baseline') {
-        const { season_id } = payload;
-        const result = await resetBaseline(season_id);
-        return send(res, 200, {
-          success: true,
-          message: `Linha de base redefinida para ${result.updated} personagens! As kills históricas agora contam no ranking.`,
+          seasonId: result.season_id,
+          outcome: result.outcome,
+          message: result.outcome === 'apocalypse' ? 'Temporada encerrada. O Apocalipse Venceu.' : `Temporada encerrada. Campeão: ${result.winner_name}.`,
         });
       }
 
       return send(res, 400, { error: `Ação desconhecida: ${action}` });
     } catch (error) {
       console.error('Falha na ação administrativa:', error);
-      return send(res, 500, { error: error.message || 'Falha ao executar ação administrativa.' });
+      return send(res, 500, { error: 'Falha ao executar ação administrativa.' });
     }
   }
 

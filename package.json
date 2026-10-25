@@ -11,17 +11,31 @@
     "dev": "vercel dev",
     "prepare-assets": "node scripts/prepare-assets.js",
     "test": "node --test",
-    "test:collector": "python -m unittest discover -s collector -p \"test_*.py\"",
+    "test:collector": "python -B scripts/check-collector.py",
     "check": "node --check public/site.js && npm test",
     "test:card": "node scripts/preview-card.js",
     "register-commands": "node scripts/register-commands.js",
     "deploy": "vercel",
-    "deploy:prod:stage": "vercel deploy --prod --skip-domain"
+    "deploy:prod:stage": "vercel deploy --prod --skip-domain",
+    "preview": "node scripts/preview-server.js",
+    "test:sql": "node --test tests/sql.test.js",
+    "test:catalog": "node scripts/sync-achievements.js --check",
+    "check:collector-schema": "node scripts/check-collector-schema.js",
+    "check:readiness": "node scripts/release-readiness.js",
+    "test:collector:source": "python -B -m unittest discover -s ../clube-das-winx-collector -p test*.py"
   },
   "dependencies": {
     "@vercel/functions": "^3.8.0",
     "discord-interactions": "^4.4.0",
     "dotenv": "^17.4.2",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.11"
+  },
+  "overrides": {
+    "@vercel/cli-config": {
+      "zod": "4.6.7"
+    }
   }
 }

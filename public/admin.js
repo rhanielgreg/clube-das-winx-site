@@ -1,12 +1,12 @@
+import { seasonResult } from './championship.js';
+import { formatNumber, csvField, formatDuration } from './contracts.js';
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-
-const SUPABASE_URL = 'https://nykhcytysswjdynjosib.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_o375t00Aj5qXhf7sRfTmCA_gZpWvMYm';
 
 let supabaseClient = null;
 let currentSession = null;
 let currentDashboardData = null;
+let demoMode = false;
 
 function showToast(message, duration = 3500) {
   const toast = $('[data-toast]');
@@ -14,16 +14,6 @@ function showToast(message, duration = 3500) {
   toast.textContent = message;
   toast.classList.add('is-visible');
   setTimeout(() => toast.classList.remove('is-visible'), duration);
-}
-
-function formatDuration(seconds) {
-  if (seconds === null || seconds === undefined || !Number.isFinite(Number(seconds))) return '—';
-  const val = Number(seconds);
-  const days = Math.floor(val / 86400);
-  const hours = Math.floor((val % 86400) / 3600);
-  if (days) return `${days}d ${hours}h`;
-  const minutes = Math.floor((val % 3600) / 60);
-  return `${hours}h ${minutes}m`;
 }
 
 function formatDate(isoString) {
@@ -37,16 +27,24 @@ function formatDate(isoString) {
   }).format(date);
 }
 
-function initSupabase() {
-  if (window.supabase && typeof window.supabase.createClient === 'function') {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
+async function initSupabase() {
+  const response = await fetch('/api/config');
+  if (!response.ok) throw new Error('Configuração administrativa indisponível.');
+  const config = await response.json();
+  if (config.demo || !config.admin_enabled) return config;
+  // O SDK de autenticação só é carregado quando há configuração explícita.
+  if (!window.supabase) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.js';
+      script.onload = resolve; script.onerror = () => reject(new Error('SDK de autenticação indisponível.'));
+      document.head.append(script);
     });
   }
+  supabaseClient = window.supabase.createClient(config.supabase_url, config.supabase_public_key, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  });
+  return config;
 }
 
 async function requestAdminApi(action, payload = {}) {
@@ -71,13 +69,11 @@ async function requestAdminApi(action, payload = {}) {
 }
 
 async function fetchDashboardData() {
-  if (!currentSession?.access_token) return;
+  if (!demoMode && !currentSession?.access_token) return;
 
   const response = await fetch('/api/admin', {
     method: 'GET',
-    headers: {
-      authorization: `Bearer ${currentSession.access_token}`,
-    },
+    headers: demoMode ? {} : { authorization: `Bearer ${currentSession.access_token}` },
   });
 
   const data = await response.json();
@@ -106,7 +102,7 @@ function renderDashboard(data) {
   $('[data-kpi-season-sub]').textContent = activeSeason ? 'Disputa ativa' : 'Ranking congelado';
   $('[data-kpi-players]').textContent = ranking.length;
   $('[data-kpi-leader]').textContent = ranking[0]?.character_name || 'Nenhum';
-  $('[data-kpi-leader-kills]').textContent = ranking[0] ? `${ranking[0].kills_total} kills` : '0 kills';
+  $('[data-kpi-leader-kills]').textContent = ranking[0] ? `${formatNumber(ranking[0].kills_total)} kills` : 'Sem pontuação';
   $('[data-kpi-sync]').textContent = sync?.last_success_at ? formatDate(sync.last_success_at) : 'Aguardando';
 
   // Active Season
@@ -142,11 +138,11 @@ function renderDashboard(data) {
         <tr>
           <td><strong>#${idx + 1}</strong></td>
           <td><b>${escapeHtml(displayName)}</b>${sub}</td>
-          <td><b style="color:var(--pink-soft)">${p.kills_total ?? 0}</b></td>
-          <td>${p.kills_firearm ?? 0}</td>
-          <td>${p.kills_melee ?? 0}</td>
+          <td><b style="color:var(--pink-soft)">${formatNumber(p.kills_total)}</b></td>
+          <td>${formatNumber(p.kills_firearm)}</td>
+          <td>${formatNumber(p.kills_melee)}</td>
           <td>${formatDuration(p.survival_seconds)}</td>
-          <td><span class="${p.alive === false ? 'dead' : 'alive'}">${p.alive === false ? 'MORTO' : 'VIVO'}</span></td>
+          <td><span class="${p.alive === false ? 'dead' : p.alive === true ? 'alive' : 'unknown'}">${p.alive === false ? 'MORTO' : p.alive === true ? 'VIVO' : 'DESCONHECIDO'}</span></td>
           <td>${formatDate(p.last_updated_at)}</td>
         </tr>`;
       }).join('')
@@ -161,7 +157,7 @@ function renderDashboard(data) {
         <div class="history-card">
           <small>${s.status === 'active' ? 'EM ANDAMENTO' : 'ENCERRADA'}</small>
           <h4>${escapeHtml(s.name)}</h4>
-          <p>${s.winner_name ? `Campeão: <b>${escapeHtml(s.winner_name)}</b> (${s.winner_kills} kills)` : 'Campeão ainda não definido.'}</p>
+          <p>${s.winner_name ? `Campeão: <b>${escapeHtml(s.winner_name)}</b> (${formatNumber(s.winner_kills)} kills)` : escapeHtml(seasonResult(s))}</p>
           <p style="margin-top:4px;font-size:9px;color:#85777f">Início: ${formatDate(s.started_at)}</p>
         </div>
       `).join('')
@@ -294,25 +290,26 @@ function setupDashboardActions() {
       ['Posicao', 'Usuario_Steam', 'Personagem', 'Kills_Total', 'Kills_Arma', 'Kills_Melee', 'Tempo_Segundos', 'Estado', 'Ultima_Atualizacao'],
       ...currentDashboardData.ranking.map((p, idx) => [
         idx + 1,
-        `"${(p.steam_username || '').replace(/"/g, '""')}"`,
-        `"${(p.character_name || '').replace(/"/g, '""')}"`,
-        p.kills_total ?? 0,
-        p.kills_firearm ?? 0,
-        p.kills_melee ?? 0,
-        p.survival_seconds ?? 0,
-        p.alive === false ? 'MORTO' : 'VIVO',
-        `"${p.last_updated_at || ''}"`,
+        csvField(p.steam_username),
+        csvField(p.character_name),
+        p.kills_total ?? '',
+        p.kills_firearm ?? '',
+        p.kills_melee ?? '',
+        p.survival_seconds ?? '',
+        p.alive === false ? 'MORTO' : p.alive === true ? 'VIVO' : 'DESCONHECIDO',
+        csvField(p.last_updated_at),
       ]),
     ];
 
-    const csvContent = 'data:text/csv;charset=utf-8,﻿' + rows.map((e) => e.join(';')).join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\ufeff' + rows.map((e) => e.join(';')).join('\n');
+    const encodedUri = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `ranking_${seasonName}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(encodedUri), 1000);
     showToast('Planilha CSV gerada com sucesso!');
   });
 
@@ -359,8 +356,8 @@ function setupDashboardActions() {
     if (!currentDashboardData?.activeSeason) return;
     const leader = currentDashboardData.ranking[0];
     $('[data-modal-season-name]').textContent = currentDashboardData.activeSeason.name;
-    $('[data-modal-winner-name]').textContent = leader ? leader.character_name : 'Nenhum sobrevivente classificado';
-    $('[data-modal-winner-kills]').textContent = leader ? leader.kills_total : '0';
+    $('[data-modal-winner-name]').textContent = leader ? leader.character_name : 'Resultado depende da validação final do banco';
+    $('[data-modal-winner-kills]').textContent = leader ? leader.kills_total : '—';
     modal.style.display = 'grid';
   });
 
@@ -448,11 +445,32 @@ function parseHashParams() {
 }
 
 async function main() {
-  initSupabase();
+  const publicConfig = await initSupabase();
+  demoMode = publicConfig.demo === true;
   setupAuthHandlers();
   setupDashboardActions();
 
-  if (!supabaseClient) return;
+  const resetButton = $('[data-action-reset-baseline]');
+  if (resetButton) { resetButton.disabled = true; resetButton.title = 'Reset bloqueado até revisão transacional e autorização específica.'; }
+  if (publicConfig.demo) {
+    const response = await fetch('/api/admin');
+    if (!response.ok) throw new Error('Dados administrativos de demonstração indisponíveis.');
+    renderDashboard(await response.json());
+    const banner = document.createElement('div');
+    banner.className = 'demo-banner';
+    banner.textContent = 'PRÉVIA LOCAL · Dados fictícios. Iniciar, encerrar e resetar estão bloqueados. Exportação CSV apenas da demonstração.';
+    document.querySelector('main').prepend(banner);
+    $$('[data-action-reset-baseline], [data-action-open-close-modal], [data-start-season-btn], [data-modal-confirm-btn], [data-action-logout]').forEach((button) => { button.disabled = true; });
+    const warning = $('[data-service-key-warning]');
+    if (warning) warning.innerHTML = '<p>Operações de escrita desativadas na prévia. Nenhuma credencial é necessária.</p>';
+    return;
+  }
+  if (!supabaseClient) {
+    const feedback = $('[data-auth-feedback]');
+    feedback.textContent = 'Autenticação não configurada neste ambiente.';
+    feedback.style.display = 'block';
+    return;
+  }
 
   // Trata tokens que chegam no hash da URL (Magic Link redirecionado)
   const hashTokens = parseHashParams();
@@ -512,4 +530,4 @@ async function main() {
   });
 }
 
-main();
+main().catch((error) => { const feedback = $('[data-auth-feedback]'); if (feedback) { feedback.textContent = error.message; feedback.style.display = 'block'; } });

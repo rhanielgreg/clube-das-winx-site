@@ -1,24 +1,19 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#09070b">
-  <meta name="robots" content="noindex">
-  <title>Perfil do Sobrevivente — Clube das Winx</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body data-page="player">
-  <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
-  <header class="site-header is-scrolled" data-header>
-    <a class="brand" href="/" aria-label="Clube das Winx — início"><img src="/assets/winx-zomboid-profile.webp" alt=""><span><small>PROJECT ZOMBOID</small><b>CLUBE DAS WINX</b></span></a>
-    <nav class="desktop-nav" aria-label="Navegação principal"><a href="/">Início</a><a href="/#servidor">Servidor</a><a class="is-active" href="/ranking">Ranking</a></nav>
-    <a class="button button-small button-pink header-connect" href="/api/connect"><span class="button-scan"></span>Entrar no servidor</a>
-    <button class="menu-trigger" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-open><span></span><span></span><span></span><span class="sr-only">Abrir menu</span></button>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#09070b"><meta name="description" content="Clube das Winx: comunidade Project Zomboid, classificação e arquivo de sobreviventes."><title>Registro do sobrevivente — Clube das Winx</title><link rel="icon" href="/assets/winx-zomboid-profile.webp"><link rel="preload" href="/fonts/Poppins-Bold.ttf" as="font" type="font/ttf" crossorigin><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/identity.css"></head><body data-page="player"><a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <header class="site-header" data-header>
+    <a class="brand" href="/index.html" aria-label="Clube das Winx — início"><img src="/assets/winx-zomboid-profile.webp" alt=""><span><small>PROJECT ZOMBOID</small><b>CLUBE DAS WINX</b></span></a>
+    <nav class="desktop-nav" aria-label="Navegação principal">
+      <a href="/index.html" data-nav="home">Início</a>
+      <a href="/index.html#servidor" data-nav="server">Servidor</a>
+      <a href="/ranking" data-nav="ranking">Ranking</a>
+      <a href="/ranking#sobreviventes" data-nav="survivors">Sobreviventes</a>
+      <a href="/memorial" data-nav="memorial">Memorial</a>
+    </nav>
+    <a class="button button-small button-pink header-connect" href="/api/connect">Entrar no servidor ↗</a>
+    <button class="menu-trigger" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-open aria-label="Abrir menu">☰</button>
   </header>
-  <aside class="menu-overlay" id="site-menu" aria-hidden="true" data-menu><button class="menu-close" type="button" data-menu-close aria-label="Fechar menu">×</button><span class="menu-kicker">NAVEGAÇÃO</span><nav><a href="/">Início</a><a href="/ranking">Ranking completo</a><a href="/api/status">Status</a></nav></aside>
-  <main class="page-main"><div class="player-page" data-player-root><div class="profile-error"><h1>Localizando sobrevivente...</h1><p>Consultando apenas os dados públicos do ranking.</p></div></div></main>
-  <footer class="site-footer"><div class="footer-brand"><img src="/assets/winx-zomboid-profile.webp" alt=""><span><b>CLUBE DAS WINX</b><small>PROJECT ZOMBOID COMMUNITY</small></span></div><p>Sobreviva. Suba no ranking. Deixe seu nome na temporada.</p><div><a href="/">Início</a><a href="/ranking">Ranking</a><a href="/api/connect">Steam</a></div><small>© <span data-year></span> Clube das Winx · Desenvolvido por Galera Nerd</small></footer>
-  <script type="module" src="/site.js"></script>
-</body>
-</html>
+  <aside class="menu-overlay" id="site-menu" aria-hidden="true" data-menu>
+    <button class="menu-close" type="button" data-menu-close aria-label="Fechar menu">×</button>
+    <small>CLUBE DAS WINX / NAVEGAÇÃO</small>
+    <nav aria-label="Menu móvel"><a href="/index.html">Início</a><a href="/index.html#servidor">Servidor</a><a href="/ranking">Ranking</a><a href="/ranking#sobreviventes">Sobreviventes</a><a href="/memorial">Memorial</a></nav>
+  </aside><main id="conteudo"><div class="page-main"><div class="player-page" data-player-root aria-live="polite"><section class="profile-error"><p class="eyebrow">REGISTRO INDIVIDUAL</p><h1>Localizando sobrevivente…</h1><p>Consultando apenas os dados públicos do ranking.</p></section></div></div></main><footer class="site-footer"><a class="brand" href="/index.html"><img src="/assets/winx-zomboid-profile.webp" alt=""><span><small>PROJECT ZOMBOID · COMUNIDADE BRASILEIRA</small><b>CLUBE DAS WINX.</b></span></a><p>Sobreviva à temporada.<br>Preserve sua história.</p><nav aria-label="Rodapé"><a href="/index.html#servidor">Servidor</a><a href="/ranking">Campeonato</a><a href="/memorial">Memorial</a><a href="/admin">Administração</a></nav><small>© <span data-year></span> Clube das Winx · Desenvolvido por Greg / Galera Nerd</small></footer><div class="toast" role="status" aria-live="polite" data-toast></div><script type="module" src="/site.js"></script></body></html>

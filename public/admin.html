@@ -9,7 +9,6 @@
   <link rel="icon" href="/assets/winx-zomboid-profile.webp">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/admin.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.js"></script>
 </head>
 <body class="admin-body">
   <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -20,7 +19,7 @@
         <img src="/assets/winx-zomboid-profile.webp" alt="Winx Zomboid">
         <span><small>CONTROLE OPERACIONAL</small><b>PAINEL DO ADMIN</b></span>
       </a>
-      <span class="admin-badge">V14 CONTROL SUITE</span>
+      <span class="admin-badge">ADMINISTRAÇÃO</span>
     </div>
     <div class="admin-session" data-admin-session style="display:none;">
       <span class="user-pill"><i class="sync-dot"></i><span data-admin-email>—</span></span>
@@ -187,7 +186,7 @@
             <div class="panel-header">
               <div>
                 <small class="kicker">REGISTRO DE SOBREVIVENTES</small>
-                <h2>Tabela ao Vivo</h2>
+                <h2>Classificação consultada</h2>
               </div>
               <div style="display:flex;gap:8px">
                 <button class="button button-ghost button-small" data-action-export-csv title="Exporta a classificação atual da temporada em arquivo CSV">📥 EXPORTAR CSV</button>
@@ -204,7 +203,7 @@
                     <th>KILLS</th>
                     <th>ARMA</th>
                     <th>MELEE</th>
-                    <th>TEMPO</th>
+                    <th>TEMPO REGISTRADO</th>
                     <th>ESTADO</th>
                     <th>ÚLTIMA LEITURA</th>
                   </tr>
@@ -243,19 +242,19 @@
             <div class="telemetry-rows">
               <div class="telemetry-row">
                 <span>Servidor Project Zomboid:</span>
-                <strong class="green-text">Online (A2S ativo)</strong>
+                <strong class="green-text">Não consultado neste painel</strong>
               </div>
               <div class="telemetry-row">
                 <span>Coletor Railway:</span>
-                <strong class="green-text">Cron a cada 5m</strong>
+                <strong class="green-text">Última coleta no resumo</strong>
               </div>
               <div class="telemetry-row">
                 <span>SFTP BisectHosting:</span>
-                <strong class="green-text">players.db validado</strong>
+                <strong class="green-text">Não verificado neste painel</strong>
               </div>
               <div class="telemetry-row">
                 <span>RLS Supabase:</span>
-                <strong class="green-text">Ativo e protegido</strong>
+                <strong class="green-text">Requer verificação de ACLs</strong>
               </div>
             </div>
           </section>
@@ -273,11 +272,11 @@
         <div class="modal-body">
           <p>Você está prestes a encerrar a <strong data-modal-season-name>—</strong>.</p>
           <div class="modal-winner-box">
-            <small>CAMPEÃO IDENTIFICADO:</small>
+            <small>PRÉVIA DO LÍDER VIVO:</small>
             <h4 data-modal-winner-name>—</h4>
             <p><span data-modal-winner-kills>0</span> kills registradas na temporada.</p>
           </div>
-          <p class="modal-warning">Essa ação é definitiva: o campeão será gravado de forma permanente no arquivo histórico e os pontos serão congelados.</p>
+          <p class="modal-warning">O banco confirma participantes e coleta no encerramento. Todos mortos com evidência válida: O Apocalipse Venceu. Dados insuficientes bloqueiam a ação. O resultado certificado e a classificação ficam preservados.</p>
         </div>
         <div class="modal-footer">
           <button class="button button-ghost button-small" data-modal-cancel>CANCELAR</button>

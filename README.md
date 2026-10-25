@@ -4,6 +4,24 @@ Portal gamer hospedável na Vercel, com status real A2S, comandos Discord via In
 
 Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway é mantido separadamente em [clube-das-winx-collector](https://github.com/rhanielgreg/clube-das-winx-collector). A pasta local `collector/` não faz parte deste repositório.
 
+## Versão local em revisão — Missão Master 07
+
+Estado atual, testes, contratos de vida/conquistas, migrações e acessos pendentes: [checkpoint consolidado](docs/MASTER07-CHECKPOINT.md). Nada foi migrado ou implantado em produção nesta missão. Os checkpoints anteriores permanecem históricos.
+
+O catálogo tem exatamente 100 definições e motor SQL persistente por vida; isso não significa 100 conquistas comprovadas na origem real. A identidade forte depende de emissor ainda não validado. `LIFE_CONTRACT_VERSION` permanece desabilitado até a validação de 004/005 e da coleta legítima.
+
+Início, ranking, perfil e Memorial usam o mesmo frontend de `public/`. Para avaliar sem credenciais ou serviços reais:
+
+```powershell
+npm.cmd run preview
+```
+
+Abra **http://127.0.0.1:4173/index.html**. Todas as pessoas e estatísticas dessa prévia são fictícias; o servidor local bloqueia escrita. Há também `/preview/mobile` para avaliar viewport de 390 px.
+
+Veja [o registro da revisão local anterior](docs/LOCAL-REVIEW.md) para o histórico da auditoria. As migrações em `migrations/` estão **preparadas e não aplicadas**. A autorização condicional da Missão 07 não dispensa os critérios de acesso, recuperação e compatibilidade do checkpoint atual.
+
+O histórico da [Missão 06](docs/MISSION06.md) registra decisões e testes anteriores. A [proposta original de conquistas](docs/ACHIEVEMENTS-PROPOSAL.md) foi implementada e detalhada no checkpoint 07. RPCs oficiais exigem `COMPETITION_RULES_VERSION=winx-v1` após 003; vida/conquistas também exigem `LIFE_CONTRACT_VERSION=life-v1` após 004/005 e validação da origem. A prévia não depende dessas variáveis e não carrega credenciais reais.
+
 ## Colaboração
 
 Clone o repositório, use Node.js 22 e execute `npm ci`. Copie `.env.example` para `.env` e preencha somente as variáveis necessárias ao seu trabalho. Nunca compartilhe nem faça commit de `.env`, tokens, credenciais SFTP ou chaves secretas do Supabase.
@@ -17,7 +35,7 @@ Crie uma branch para cada alteração e abra um Pull Request para `main`. Execut
 - `/jogador?id=UUID` com perfil e evolução pública, sem Steam ID, IP ou coordenadas.
 - `/server` e `/status` no Discord, assinatura Ed25519 e card PNG dinâmico.
 - `/api/status`, `/api/connect`, `/api/ranking` e `/api/player` na Vercel.
-- Coletor Python em `collector/`, agendado no Railway a cada cinco minutos.
+- Coletor Python mantido em repositório separado; agendamento depende do ambiente Railway.
 - SQL aditivo com jogadores, personagens, snapshots, temporadas, vencedores, execuções e lock.
 - CLI do Admin para abrir e encerrar temporadas manualmente.
 
@@ -39,7 +57,8 @@ BisectHosting ─SFTP─> Railway Cron ─> Supabase ─RPC pública segura─> 
 api/                  Interactions, status, ranking e perfil
 lib/                  A2S, Discord, card e cliente Supabase público
 public/               Portal, ranking, perfil, motion e imagens
-collector/            Job Railway, SQL, CLI de temporadas e testes
+migrations/           Propostas SQL para revisão, sem aplicação automática
+docs/                 Procedimentos e pendências da revisão local
 scripts/              Registro dos comandos e prévia do card
 tests/                Testes Node
 vercel.json           Funções e rotas
@@ -100,7 +119,7 @@ SUPABASE_URL=https://SEU-PROJETO.supabase.co
 SUPABASE_PUBLISHABLE_KEY=
 ```
 
-Não configure `SUPABASE_SERVICE_ROLE_KEY` na Vercel ou no navegador. As APIs públicas consultam somente RPCs com campos aprovados. Todas as tabelas têm RLS ativo e acesso público direto revogado.
+As APIs públicas usam somente chave pública e RPCs com saída restrita. Nunca envie `SUPABASE_SERVICE_ROLE_KEY` ao navegador. O painel administrativo existente depende dessa chave no backend para iniciar/encerrar temporadas; sua segregação na Vercel precisa de revisão antes de habilitar escrita. Não configure credenciais automaticamente. RLS, ACLs e assinaturas precisam ser verificados no ambiente conforme o preflight; este repositório não comprova a configuração de produção.
 
 ## Railway
 
@@ -114,13 +133,13 @@ O agendamento é configurado no painel Railway:
 
 ## Temporadas
 
-Com as variáveis privadas do Supabase disponíveis localmente ou em um job administrativo:
+No repositório separado do coletor, e somente com autorização específica para ações administrativas:
 
 ```powershell
-python collector/season_admin.py list
-python collector/season_admin.py start --name "Temporada 1" --slug "temporada-1"
-python collector/season_admin.py close --id "UUID_DA_TEMPORADA" --yes
-python collector/season_admin.py close --id "UUID_DA_TEMPORADA" --winner-id "UUID_DO_JOGADOR" --yes
+python season_admin.py list
+python season_admin.py start --name "Temporada 1" --slug "temporada-1"
+python season_admin.py close --id "UUID_DA_TEMPORADA" --yes
+python season_admin.py close --id "UUID_DA_TEMPORADA" --winner-id "UUID_DO_JOGADOR" --yes
 ```
 
 Encerrar preserva o vencedor, a premiação informativa e toda a classificação da temporada. A nova temporada começa com uma linha de base própria.
@@ -137,7 +156,7 @@ vercel promote URL_VALIDADA
 
 ## Limitações conhecidas
 
-- Kills TTF foram validadas com fragmentos anonimizados de cinco registros reais. Sobrevivência permanece `NULL`: o campo de tempo TTF mede tempo real jogado, não sobrevivência no mundo.
+- Kills TTF incluem veículos no total validado. O campo legado `survival_seconds` da cópia de coletor examinada recebe tempo jogado TTF: a interface o chama de tempo registrado. Sobrevivência em dias no mundo permanece sem uma fonte validada.
 - A coleta acompanha salvamentos do Project Zomboid, não eventos instantâneos.
 - Sem um identificador de vida confirmado, reutilizar o mesmo nome de personagem na mesma conta pode unir duas vidas no histórico.
 - Railway e Supabase exigem criação/configuração nos projetos corretos; nenhuma conta externa é presumida pelo código.

@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "regions": ["gru1"],
+  "regions": [
+    "gru1"
+  ],
   "functions": {
     "api/interactions.js": {
       "maxDuration": 15,
@@ -22,12 +24,42 @@
     }
   },
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/ranking", "destination": "/ranking.html" },
-    { "source": "/jogador", "destination": "/jogador.html" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/painel", "destination": "/admin.html" },
-    { "source": "/status", "destination": "/api/status" },
-    { "source": "/connect", "destination": "/api/connect" }
-  ]
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ranking",
+      "destination": "/ranking.html"
+    },
+    {
+      "source": "/jogador",
+      "destination": "/jogador.html"
+    },
+    {
+      "source": "/memorial",
+      "destination": "/memorial.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/painel",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/api/status"
+    },
+    {
+      "source": "/connect",
+      "destination": "/api/connect"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "codex/mission07": false
+    }
+  }
 }
