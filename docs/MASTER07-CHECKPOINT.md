@@ -11,7 +11,9 @@ Atualizado em 25/10/2026. Implementação local; integração e publicação rea
 - `git ls-remote` confirmou bases remotas inalteradas antes do versionamento. Permissão Git de escrita verificada por dry-run. O conector GitHub retorna 404 para estes repositórios; a autenticação Git local tem acesso.
 - Vercel: branch `codex/mission07` com `git.deploymentEnabled=false` no código. Nenhuma promoção de domínio autorizada por esta configuração. O destino real ainda não está acessível pelo conector.
 - Railway: vínculo/branch efetivamente implantados desconhecidos. Push do coletor deve aguardar comprovação de que esta branch não dispara implantação. Não confiar em `[skip ci]` como bloqueio universal de deploy.
-- Coletor salvo no commit local `556e9e9340c66740738921acc98358814d4931a3`; árvore limpa, ainda sem push pela restrição de autodeploy não verificado. O site será salvo na mesma branch; seu commit e confirmação de push ficam no registro final e no Git.
+- Site implementado no commit `3c5b71129ad00b4eab3c4d474a2301ac5a94ec7b`, enviado para `origin/codex/mission07`; hash remoto conferido. Este checkpoint recebe registro complementar em commit de documentação. `main` não foi alterada e não foi aberto PR.
+- Coletor salvo no commit local `556e9e9340c66740738921acc98358814d4931a3`; árvore limpa, ainda sem push pela restrição de autodeploy não verificado. `master` remoto permanece na base examinada.
+- Nenhum comando de deploy, promoção ou migração produtiva foi executado. Configurações reais de Vercel, Railway, Supabase e BisectHosting não foram alteradas. Sem acesso ao projeto Vercel correto, não é possível inspecionar eventos automáticos no provedor; o bloqueio por branch está versionado e a publicação real continua não declarada.
 
 ## O que está implementado
 
