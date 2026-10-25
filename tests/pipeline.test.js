@@ -9,10 +9,10 @@ import player from '../api/player.js';
 import { achievementPanel } from '../public/achievement-panel.js';
 
 const collector=fileURLToPath(new URL('../../clube-das-winx-collector/',import.meta.url));
-test('integração local: coletor Python real → ingestão SQL → API → medalhas do dossiê',{
+for(const sourceMode of ['signed','ttf_saved'])test(`integração local (${sourceMode}): coletor Python real → ingestão SQL → API → medalhas do dossiê`,{
  skip:!existsSync(collector+'verified_life.py')?'clone legítimo irmão do coletor necessário para esta integração':false,
 },async(t)=>{
- const source=String.raw`
+ const source=sourceMode==='signed'?String.raw`
 import json,hashlib
 from pathlib import Path
 from test_verified_life import signed,KEY
@@ -24,6 +24,11 @@ counters=ttf_observation_counters(blob)
 digest=hashlib.sha256(json.dumps(counters,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 envelope=signed(metrics={},ttf_counters_are_lifetime=True,ttf_metrics_digest=digest,ttf_coverage='complete_life')
 print(json.dumps(extract_verified([('Conta','Nome',0,blob)],'local-fixture-salt',KEY,read_envelope=lambda _:envelope)[0]))
+`:String.raw`
+import json
+from test_ttf_saved_life import row,SALT,NAMESPACE
+from ttf_saved_life import extract_saved_lives
+print(json.dumps(extract_saved_lives([row()],SALT,NAMESPACE)[0]))
 `;
  const observation=JSON.parse(execFileSync('python',['-B','-c',source],{cwd:collector,encoding:'utf8'}));
  const db=new PGlite();

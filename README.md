@@ -6,9 +6,9 @@ Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway 
 
 ## Versão local em revisão — Missão Master 07
 
-Estado atual, testes, contratos de vida/conquistas, migrações e acessos pendentes: [checkpoint consolidado](docs/MASTER07-CHECKPOINT.md). Nada foi migrado ou implantado em produção nesta missão. Os checkpoints anteriores permanecem históricos.
+Estado atual, testes, contratos de vida/conquistas e transição pendente: [checkpoint consolidado](docs/MASTER07-CHECKPOINT.md). A correção limitada de permissões 001 foi aplicada e verificada; as migrações estruturais 002–005 e o código novo não foram implantados. A coleta produtiva voltou a funcionar após a correção SFTP feita pelo usuário. Os checkpoints anteriores permanecem históricos.
 
-O catálogo tem exatamente 100 definições e motor SQL persistente por vida; isso não significa 100 conquistas comprovadas na origem real. A identidade forte depende de emissor ainda não validado. `LIFE_CONTRACT_VERSION` permanece desabilitado até a validação de 004/005 e da coleta legítima.
+O catálogo tem exatamente 100 definições e motor SQL persistente por vida; isso não significa 100 conquistas disponíveis em produção. As três especiais de mil kills foram corrigidas após a [revisão das 100 definições e aprovação específica](docs/ACHIEVEMENTS-REVIEW07.md). A origem existente fornece `TTFStatsMP.characterID` e distância total, mas seu ciclo completo de vida ainda exige validação. `LIFE_CONTRACT_VERSION` permanece desabilitado até a transição segura de 004/005 e da coleta legítima.
 
 Início, ranking, perfil e Memorial usam o mesmo frontend de `public/`. Para avaliar sem credenciais ou serviços reais:
 
@@ -18,7 +18,7 @@ npm.cmd run preview
 
 Abra **http://127.0.0.1:4173/index.html**. Todas as pessoas e estatísticas dessa prévia são fictícias; o servidor local bloqueia escrita. Há também `/preview/mobile` para avaliar viewport de 390 px.
 
-Veja [o registro da revisão local anterior](docs/LOCAL-REVIEW.md) para o histórico da auditoria. As migrações em `migrations/` estão **preparadas e não aplicadas**. A autorização condicional da Missão 07 não dispensa os critérios de acesso, recuperação e compatibilidade do checkpoint atual.
+Veja [o registro da revisão local anterior](docs/LOCAL-REVIEW.md) para o histórico da auditoria. As migrações estruturais 002–005 em `migrations/` estão **preparadas e não aplicadas**. A autorização condicional da Missão 07 não dispensa os critérios de recuperação e compatibilidade do checkpoint atual.
 
 O histórico da [Missão 06](docs/MISSION06.md) registra decisões e testes anteriores. A [proposta original de conquistas](docs/ACHIEVEMENTS-PROPOSAL.md) foi implementada e detalhada no checkpoint 07. RPCs oficiais exigem `COMPETITION_RULES_VERSION=winx-v1` após 003; vida/conquistas também exigem `LIFE_CONTRACT_VERSION=life-v1` após 004/005 e validação da origem. A prévia não depende dessas variáveis e não carrega credenciais reais.
 

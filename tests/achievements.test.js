@@ -33,6 +33,25 @@ test('exatamente 100 critérios estáveis: 30 progressões completas e 10 especi
  }
  assert.equal(sequences.size,30);for(const rows of sequences.values())assert.deepEqual(rows.map(a=>a.level_rank),[1,2,3]);
 });
+test('três marcos de mil kills independem dos outros métodos e aceitam cobertura parcial comprovada',async()=>{
+ const approved={ 'arsenal-fogo':'kills_firearm','arsenal-contato':'kills_melee','arsenal-rodas':'kills_vehicle' };
+ for(const [id,key] of Object.entries(approved))assert.deepEqual(achievementCatalog.find(a=>a.id===id).criteria,[{metric:key,op:'gte',value:1000}]);
+ const db=await database();
+ try {
+  const at=Date.now()-2000;
+  for(const [step,count] of [999,1000].entries()){
+   const values=Object.fromEntries(Object.entries({kills_total:count*3+37,kills_firearm:count,kills_melee:count,kills_vehicle:count,kills_other:37})
+    .map(([key,value])=>[key,metric(key,value,'observed_lower_bound')]));
+   const calculated=evaluateAchievements({identity_status:'verified_source_life',alive:true,metrics:values});
+   const profile=await ingest(db,values,{at:new Date(at+step*1000).toISOString()});
+   const persisted=(await db.query('select get_public_life_achievements_v1($1) data',[profile])).rows[0].data.unlocks.map(a=>a.achievement_id);
+   for(const id of Object.keys(approved)){
+    assert.equal(calculated.includes(id),count===1000,id+' JS');
+    assert.equal(persisted.includes(id),count===1000,id+' SQL');
+   }
+  }
+ }finally{await db.close();}
+});
 test('cada um dos 100 critérios possui caso positivo e fronteira que não concede',()=>{
  const categoryKeys=['kills_axe','kills_blunt','kills_small_blunt','kills_long_blade','kills_small_blade','kills_spear','kills_unarmed','kills_firearm','kills_vehicle','kills_other'];
  for(const definition of achievementCatalog){
@@ -56,9 +75,19 @@ test('motor não concede sem identidade, unidade, escopo ou cobertura; UI conta 
  for(const bad of [{value:10000,unit:'meters',validated:true,scope:'life'},{value:'10000',unit:'count',validated:true,scope:'life'},{value:true,unit:'count',validated:true,scope:'life'}])assert.equal(evaluateAchievements({...evidence,metrics:{kills_total:bad}}).length,0);
  const view=visibleAchievements(unlocked,achievementCatalog);assert.equal(view.total,3);assert.deepEqual(view.visible.map(a=>a.id),['exterminador.gold']);
  assert.ok(medalSvg(view.visible[0]).includes('viewBox="0 0 64 72"'));
- const partial={identity_status:'verified_source_life',metrics:metrics({kills_firearm:1000,kills_melee:0,kills_vehicle:0,kills_other:0}),alive:true};
- assert.ok(evaluateAchievements(partial).includes('arsenal-fogo'));
- partial.metrics.kills_melee.coverage='observed_lower_bound';assert.ok(!evaluateAchievements(partial).includes('arsenal-fogo'));
+ const partial={identity_status:'verified_source_life',metrics:metrics({survival_world_days:30,kills_total:100,kills_firearm:0}),alive:true};
+ assert.ok(evaluateAchievements(partial).includes('mes-sem-tiros'));
+ partial.metrics.kills_firearm.coverage='observed_lower_bound';assert.ok(!evaluateAchievements(partial).includes('mes-sem-tiros'));
+});
+test('dossiê respeita ordem Bronze/Prata/Ouro mesmo com catálogo SQL ordenado por ID; especial não tem próximo nível',()=>{
+ const catalog=[...achievementCatalog].sort((a,b)=>a.id.localeCompare(b.id));
+ const panel=achievementPanel({catalog_count:100,catalog,identity_verified:true,unlocks:[{achievement_id:'atirador.bronze'},{achievement_id:'tres-frentes'}]});
+ const progression=panel.match(/<h3>Atirador — Bronze<\/h3>[\s\S]*?<\/article>/)[0];
+ assert.ok(progression.includes('Próximo nível: Kills por armas de fogo ≥ 500'));
+ assert.ok(!progression.includes('2.500'));
+ const special=panel.match(/<h3>Três frentes<\/h3>[\s\S]*?<\/article>/)[0];
+ assert.ok(special.includes('Desbloqueada'));
+ assert.ok(!special.includes('Próximo nível'));
 });
 test('PostgreSQL: persistência por vida, reprocessamento, morte, nome igual, temporada e permissões',async()=>{
  const db=await database();

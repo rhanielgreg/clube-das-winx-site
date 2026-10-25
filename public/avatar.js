@@ -26,5 +26,5 @@ export function characterAvatar(row = {}) {
   const fallback = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   const steam = identified && row.avatar_source === 'steam_configured' && trustedSteamAvatar(row.avatar_url);
   return { src: steam ? row.avatar_url : fallback, fallback,
-    label: steam ? 'Avatar Steam · associação configurada' : 'Monograma do registro · identidade da vida em validação' };
+    label: steam ? 'Avatar Steam · associação configurada' : 'Monograma do registro' };
 }
