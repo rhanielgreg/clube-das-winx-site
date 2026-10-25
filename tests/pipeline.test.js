@@ -37,7 +37,7 @@ print(json.dumps(extract_saved_lives([row()],SALT,NAMESPACE)[0]))
  Object.assign(process.env,env);
  try {
   await db.exec(await readFile(new URL('./fixtures/schema-before.sql',import.meta.url),'utf8'));
-  for(const file of ['001_restrict_ingestion','002_public_read_contracts','003_official_championship','004_life_achievements','005_life_read_contracts']) await db.exec(await readFile(new URL('../migrations/'+file+'.sql',import.meta.url),'utf8'));
+  for(const file of ['001_restrict_ingestion','002_public_read_contracts','003_official_championship','004_life_achievements','006_dashboard_release','005_life_read_contracts','007_controlled_life_activation']) await db.exec(await readFile(new URL('../migrations/'+file+'.sql',import.meta.url),'utf8'));
   await db.exec("insert into ranking_seasons(name,slug) values('Integração','integracao')");
   const args=['p_world_id','p_account_token','p_life_token','p_character_name','p_steam_username','p_alive','p_observed_at','p_source_sha256','p_metrics'].map(key=>observation[key]);
   const profile=(await db.query('select ingest_life_observation_v1($1,$2,$3,$4,$5,$6,$7,$8,$9) id',args)).rows[0].id;

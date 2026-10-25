@@ -8,9 +8,9 @@ Revisão de 25/10/2026, extraída do catálogo existente. A revisão inicial foi
 2. **Mil no contato** (arsenal-contato): exigir somente 1.000 kills corpo a corpo. Remover as três exigências de zero nas outras categorias.
 3. **Mil sobre rodas** (arsenal-rodas): aplicar a mesma lógica: somente 1.000 kills por veículos. Esta terceira alteração também foi aprovada expressamente.
 
-**Duplicidade identificada:** Mil no contato e Linha de frente — Prata continuam com o marco aprovado de 1.000 kills corpo a corpo. O usuário pediu uma proposta para evitar duas medalhas pelo mesmo feito, preservando a progressão existente. **Proposta adicional, ainda não aplicada:** manter Linha de frente em 100/1.000/5.000 e transformar apenas a especial arsenal-contato em “Dois mil no contato”, com 2.000 kills corpo a corpo. O ID e as 100 posições seriam preservados. O limiar aprovado de 1.000 não foi substituído silenciosamente.
+**Missão 08 — redundância resolvida:** a orientação final preservou Mil no contato em 1.000 e autorizou o ajuste pontual necessário na progressão. Linha de frente — Prata passou de 1.000 para **2.500**; Bronze 100 e Ouro 5.000 permanecem. A proposta anterior de renomear a especial para Dois mil no contato foi substituída por essa decisão. São 100 definições; além das três correções sem zeros, somente esse critério adicional mudou.
 
-As outras 97 definições ficam como estão. Não proponho reduzir limiares, substituir métricas ausentes, criar ou remover medalhas. **Um mês sem tiros registrados** conserva o zero de armas de fogo porque a ausência de tiros é o próprio feito; exige prova de cobertura completa da vida, além de 30 dias reais no mundo e 100 kills. A implementação atual permanece impedida de concedê-la com dados parciais.
+Na revisão 07, as outras 97 definições foram mantidas. A Missão 08 alterou apenas Linha de frente — Prata por necessidade comprovada de remover a redundância; as outras 96 permanecem intactas. Não proponho reduzir limiares, substituir métricas ausentes, criar ou remover medalhas. **Um mês sem tiros registrados** conserva o zero de armas de fogo porque a ausência de tiros é o próprio feito; exige prova de cobertura completa da vida, além de 30 dias reais no mundo e 100 kills. A implementação atual permanece impedida de concedê-la com dados parciais.
 
 Nenhuma conquista real foi concedida. As três regras foram corrigidas em conjunto com testes de fronteira, antes da primeira ativação. Não será criado mecanismo de preservação de desbloqueios antigos inexistentes.
 
@@ -36,7 +36,7 @@ Nenhuma conquista real foi concedida. As três regras foram corrigidas em conjun
 | 5 | atirador.silver | Atirador — Prata | Kills por armas de fogo ≥ 500 | Manter. | Origem TTF; ativação segura pendente |
 | 6 | atirador.gold | Atirador — Ouro | Kills por armas de fogo ≥ 2.500 | Manter. | Origem TTF; ativação segura pendente |
 | 7 | linha-frente.bronze | Linha de frente — Bronze | Kills corpo a corpo ≥ 100 | Manter. | Origem TTF; ativação segura pendente |
-| 8 | linha-frente.silver | Linha de frente — Prata | Kills corpo a corpo ≥ 1.000 | Manter. | Origem TTF; ativação segura pendente |
+| 8 | linha-frente.silver | Linha de frente — Prata | Kills corpo a corpo ≥ 1.000 | Missão 08: ≥ 2.500. Especial Mil no contato conserva 1.000. | Origem TTF; ativação segura pendente |
 | 9 | linha-frente.gold | Linha de frente — Ouro | Kills corpo a corpo ≥ 5.000 | Manter. | Origem TTF; ativação segura pendente |
 | 10 | impacto-rodas.bronze | Impacto sobre rodas — Bronze | Kills por veículos ≥ 50 | Manter. | Origem TTF; ativação segura pendente |
 | 11 | impacto-rodas.silver | Impacto sobre rodas — Prata | Kills por veículos ≥ 500 | Manter. | Origem TTF; ativação segura pendente |
@@ -136,4 +136,4 @@ No catálogo apresentado antes da aprovação, 21 definições dependem de dias 
 
 As 100 regras atuais já têm casos positivo e negativo em JavaScript e PostgreSQL descartável. Testar uma regra demonstra que o motor cumpre a definição; não demonstra que a definição é a desejada pelo jogador. Esta revisão trata justamente dessa diferença. A fonte TTF parcial não permite afirmar ausência de ações durante toda a vida nem inventar datas exatas dos feitos.
 
-SHA256 da fonte apresentada na revisão inicial, antes das três correções: 11ef8ef74ca2840f402d3981366ec6835126197ba0c91cf5e9fa4e42b5782db0. Este hash documenta a revisão anterior. O diff aprovado muda somente as três definições indicadas; a proposta de 2.000 ainda não integra o catálogo.
+SHA256 da fonte apresentada na revisão inicial, antes das três correções: 11ef8ef74ca2840f402d3981366ec6835126197ba0c91cf5e9fa4e42b5782db0. Este hash documenta a revisão anterior. A revisão 07 mudou as três especiais; a Missão 08 acrescentou exclusivamente o ajuste de Linha de frente — Prata para 2.500. Nenhuma alteração para 2.000 foi aplicada.

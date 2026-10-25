@@ -1,3 +1,15 @@
 collector/
 tests/
 .env*.local
+public/demo-data.js
+docs/
+migrations/
+scripts/recovery-export.sql
+scripts/restore-recovery.py
+scripts/rehearse-postgrest.py
+scripts/preview-server.js
+scripts/preview-achievements.js
+node_modules/.mission*
+*.db
+*.db-wal
+*.db-shm

@@ -1,4 +1,5 @@
 import { achievementPanel } from './achievement-panel.js';
+import { collectionCountdown } from './collection-countdown.js';
 import { formatNumber, formatDuration, hasNumber, lifeState, escapeHtml as safe, filterRanking, UUID } from './contracts.js';
 import { profileMetrics, memorialDate } from './presentation.js';
 import { characterAvatar } from './avatar.js';
@@ -51,6 +52,10 @@ async function request(path) {
   if (['offline', 'empty', 'stale', 'no-champion', 'server-offline', 'server-unknown', 'advanced', 'achievements'].includes(scenario)) url.searchParams.set('scenario', scenario);
   const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
   const data = await response.json();
+  if(url.pathname==='/api/ranking'&&Number.isFinite(Date.parse(data.server_time||''))){
+    const age=Number(response.headers.get('age')||0);
+    data.collection_clock={server:Date.parse(data.server_time)+(Number.isFinite(age)&&age>=0?age*1000:0),received:performance.now()};
+  }
   if (data.demo) showDemo();
   if (!response.ok) throw new Error(data.error || data.message || 'Não foi possível consultar os registros.');
   return data;
@@ -226,6 +231,9 @@ async function loadRanking() {
     setText('[data-season-state]', season ? 'Disputa em andamento' : 'Aguardando próxima temporada');
     setText('[data-ranking-sync]', payload.sync?.last_success_at ? `${payload.demo ? 'Leitura fictícia' : 'Última coleta'} / ${date(payload.sync.last_success_at)}` : 'Coleta ainda não sincronizada');
     setText('[data-ranking-refreshed]', `Dados recebidos pela página / ${date(new Date().toISOString())}`);
+    updateCollectionCountdown();
+    const cohortNote=$('[data-cohort-note]');
+    if(cohortNote){cohortNote.hidden=!payload.cohort_started_at;cohortNote.textContent=payload.cohort_started_at?`Coorte validada em ${date(payload.cohort_started_at)}. Cada vida conta pontos a partir de sua primeira leitura validada; registros anteriores permanecem preservados.`:'';}
     const warning = $('[data-sync-warning]');
     if (warning) { warning.hidden = !payload.stale; warning.textContent = payload.sync?.latest_attempt_status === "failed" ? `A última tentativa de coleta falhou. Último sucesso: ${date(payload.sync?.last_success_at)}.` : payload.sync?.latest_attempt_status === "running" ? `Coleta em andamento. Exibindo o último sucesso: ${date(payload.sync?.last_success_at)}.` : `A fonte informa dados desatualizados. Última coleta: ${date(payload.sync?.last_success_at)}.`; }
     $$('[data-ranking-sync]').forEach((node) => node.classList.toggle('is-stale', Boolean(payload.stale)));
@@ -238,6 +246,7 @@ async function loadRanking() {
     updateLeader(null, true);
     setText('[data-ranking-sync]', 'Consulta indisponível. Não foi possível verificar a última coleta.');
     setText('[data-ranking-refreshed]', 'Atualização dos dados indisponível');
+    updateCollectionCountdown();
     if ($('[data-survivor-grid]')) $('[data-survivor-grid]').innerHTML = `<p class="error-box">${safe(error.message)}</p>`;
     if ($('[data-ranking-list]')) $('[data-ranking-list]').innerHTML = `<li class="skeleton">${safe(error.message)}</li>`;
     if ($('[data-ranking-body]')) $('[data-ranking-body]').innerHTML = `<tr><td colspan="8" class="table-empty">${safe(error.message)} Use “Atualizar” para tentar novamente.</td></tr>`;
@@ -324,6 +333,11 @@ async function loadPlayer() {
   }
 }
 
+function updateCollectionCountdown(){
+ const clock=rankingPayload?.collection_clock;
+ setText('[data-collection-countdown]',collectionCountdown(rankingPayload?.sync,clock?clock.server+performance.now()-clock.received:NaN));
+}
+setInterval(updateCollectionCountdown,1000);
 let refreshing = false;
 let initialAnchorResolved = false;
 async function refreshAll(manual = false) {

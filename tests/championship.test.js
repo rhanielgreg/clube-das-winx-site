@@ -74,6 +74,16 @@ test('todos mortos encerra sem campeão, preserva pontos e diferencia legado sem
     assert.equal((await db.query("select * from get_public_seasons_v2(8) where slug='legado'")).rows[0].outcome,'legacy_unverified');
   }finally{await db.close();}
 });
+test('morte ou estado desconhecido mais recente não recupera outro registro antigo marcado vivo',async()=>{
+ const db=await setup();
+ try{
+  await db.query("update game_characters set alive=true,last_seen_at=now()-interval '1 hour' where id=$1",[id(1)]);
+  for(const state of [false,null]){
+   await db.query('update game_characters set alive=$1 where id=$2',[state,id(2)]);
+   assert.deepEqual((await db.query('select * from get_public_ranking(100)')).rows.map(r=>r.profile_id),[id(3)]);
+  }
+ }finally{await db.close();}
+});
 test('desconhecido, stale, vazio ou vivo sem dados impedem encerramento e falso apocalipse',async()=>{
   const db=await setup();
   try {

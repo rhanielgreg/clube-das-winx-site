@@ -1,7 +1,7 @@
 import { callPublicRpc } from '../lib/supabase-public.js';
 import { getSteamAvatar } from '../lib/steam-avatar.js';
 import { UUID, normalizeCharacter } from '../public/contracts.js';
-import { officialContractEnabled, lifeContractEnabled } from '../lib/championship-contract.js';
+import { resolveDashboardContract } from '../lib/championship-contract.js';
 import { validatedLifeResult } from '../lib/life-public-contract.js';
 
 function send(res, status, body) {
@@ -22,17 +22,18 @@ export default async function handler(req, res) {
   }
 
   try {
+    const contract=await resolveDashboardContract();
     const profileResult = await callPublicRpc('get_public_player', { p_profile_id: profileId }, { timeoutMs: 3500 });
     if (!profileResult.configured) return send(res, 503, { error: 'Ranking ainda não configurado.' });
 
     const profile = Array.isArray(profileResult.data) ? profileResult.data[0] ?? null : profileResult.data;
     if (!profile) return send(res, 404, { error: 'Perfil não encontrado.' });
     const [historyResult, avatar, titlesResult, achievementsResult] = await Promise.all([
-      profile.season_id ? callPublicRpc('get_public_player_history_v2', { p_profile_id: profileId, p_season_id: profile.season_id, p_limit: 90 }, { timeoutMs: 3500 })
+      contract.official&&profile.season_id ? callPublicRpc('get_public_player_history_v2', { p_profile_id: profileId, p_season_id: profile.season_id, p_limit: 90 }, { timeoutMs: 3500 })
         .catch(() => ({ data: null, unavailable: true })) : Promise.resolve({ data: null, unavailable: true }),
       getSteamAvatar(profile.steam_username, { profileId: profile.profile_id }),
-      officialContractEnabled() ? callPublicRpc('get_public_player_titles', { p_profile_id: profileId }, { timeoutMs: 3500 }).catch(() => ({ data: null })) : Promise.resolve({ data: null }),
-      lifeContractEnabled() ? callPublicRpc('get_public_life_achievements_v1', { p_profile_id: profileId }, { timeoutMs: 3500 }).catch(() => ({ data: null })) : Promise.resolve({ data: null }),
+      contract.official ? callPublicRpc('get_public_player_titles', { p_profile_id: profileId }, { timeoutMs: 3500 }).catch(() => ({ data: null })) : Promise.resolve({ data: null }),
+      contract.life ? callPublicRpc('get_public_life_achievements_v1', { p_profile_id: profileId }, { timeoutMs: 3500 }).catch(() => ({ data: null })) : Promise.resolve({ data: null }),
     ]);
     profile.avatar_url = avatar;
     profile.avatar_source = avatar ? 'steam_configured' : null;

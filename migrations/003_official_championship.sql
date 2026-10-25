@@ -26,7 +26,7 @@ revoke all on public.season_results,public.season_classification from public,ano
 
 -- Representante vivo mais recentemente observado; desempate de pontuação:
 -- kills DESC, tempo registrado DESC NULLS LAST, UUID ASC (jamais estado online).
-create or replace function public.ranking_representatives(p_season_id uuid)
+create or replace function public.ranking_legacy_representatives_v1(p_season_id uuid)
 returns table(profile_id uuid,season_id uuid,season_name text,rank_position bigint,
   character_name text,steam_username text,alive boolean,kills_total integer,
   kills_firearm integer,kills_melee integer,survival_seconds bigint,last_updated_at timestamptz)
@@ -39,12 +39,20 @@ language sql stable security definer set search_path='' as $$
     join public.game_characters c on c.id=st.character_id
     join public.game_players p on p.id=c.player_id
     where s.id=p_season_id and s.status='active' and c.alive is true and st.kills_total is not null
+      and c.character_key not like 'life-v1:%'
+      and c.last_seen_at=(select max(latest.last_seen_at) from public.game_characters latest where latest.player_id=c.player_id)
     order by c.player_id,c.last_seen_at desc,st.observed_at desc,c.id
   ) select r.profile_id,r.season_id,r.season_name,
     row_number() over(order by r.kills_total desc,r.survival_seconds desc nulls last,r.profile_id),
     r.character_name,r.steam_username,r.alive,r.kills_total,r.kills_firearm,
     r.kills_melee,r.survival_seconds,r.last_updated_at from representatives r;
 $$;
+revoke all on function public.ranking_legacy_representatives_v1(uuid) from public,anon,authenticated;
+grant execute on function public.ranking_legacy_representatives_v1(uuid) to service_role;
+create or replace function public.ranking_representatives(p_season_id uuid)
+returns table(profile_id uuid,season_id uuid,season_name text,rank_position bigint,
+ character_name text,steam_username text,alive boolean,kills_total integer,kills_firearm integer,kills_melee integer,survival_seconds bigint,last_updated_at timestamptz)
+language sql stable security definer set search_path='' as $$ select * from public.ranking_legacy_representatives_v1(p_season_id); $$;
 revoke all on function public.ranking_representatives(uuid) from public,anon,authenticated;
 grant execute on function public.ranking_representatives(uuid) to service_role;
 
@@ -93,11 +101,15 @@ language sql stable security definer set search_path='' as $$
   ) st on true where c.id=p_profile_id and c.alive=false and not exists(select 1 from selected);
 $$;
 
-create or replace function public.championship_participant_ids_v1(p_season_id uuid)
+create or replace function public.championship_legacy_participant_ids_v1(p_season_id uuid)
 returns setof uuid language sql stable security definer set search_path='' as $$
  select c.id from public.game_characters c join public.ranking_seasons s on s.id=p_season_id
- where c.last_seen_at>=s.started_at or exists(select 1 from public.player_statistics_current st where st.season_id=s.id and st.character_id=c.id);
+ where c.character_key not like 'life-v1:%' and (c.last_seen_at>=s.started_at or exists(select 1 from public.player_statistics_current st where st.season_id=s.id and st.character_id=c.id));
 $$;
+revoke all on function public.championship_legacy_participant_ids_v1(uuid) from public,anon,authenticated;
+grant execute on function public.championship_legacy_participant_ids_v1(uuid) to service_role;
+create or replace function public.championship_participant_ids_v1(p_season_id uuid)
+returns setof uuid language sql stable security definer set search_path='' as $$ select * from public.championship_legacy_participant_ids_v1(p_season_id); $$;
 revoke all on function public.championship_participant_ids_v1(uuid) from public,anon,authenticated;
 grant execute on function public.championship_participant_ids_v1(uuid) to service_role;
 

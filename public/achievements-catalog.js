@@ -10,7 +10,7 @@ const describe=(r)=>{
 const groups=[
  ['exterminador','Exterminador','combate','kills_total',[100,1000,10000]],
  ['atirador','Atirador','combate','kills_firearm',[100,500,2500]],
- ['linha-frente','Linha de frente','combate','kills_melee',[100,1000,5000]],
+ ['linha-frente','Linha de frente','combate','kills_melee',[100,2500,5000]],
  ['impacto-rodas','Impacto sobre rodas','veiculos','kills_vehicle',[50,500,2500]],
  ['lenhador','Fio do machado','armas','kills_axe',[25,250,1000]],
  ['contundente','Força contundente','armas','kills_blunt',[25,250,1000]],

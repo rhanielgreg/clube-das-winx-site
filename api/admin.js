@@ -1,7 +1,7 @@
 import { callPublicRpc, isStale } from '../lib/supabase-public.js';
 import { validateAdminAction } from '../lib/admin-actions.js';
 import { UUID } from '../public/contracts.js';
-import { officialContractEnabled, officialContractPending } from '../lib/championship-contract.js';
+import { resolveDashboardContract, officialContractPending } from '../lib/championship-contract.js';
 
 function getAdminConfig(env = process.env) {
   const url = env.SUPABASE_URL?.trim().replace(/\/$/, '');
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
   const config = getAdminConfig();
 
   if (req.method === 'GET') {
-    if (!officialContractEnabled()) return send(res, 503, { error: officialContractPending });
+    if (!(await resolveDashboardContract()).official) return send(res, 503, { error: officialContractPending });
     try {
       const [rankingResult, seasonsResult, syncResult] = await Promise.all([
         callPublicRpc('get_public_ranking', { p_limit: 250 }),
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
     const { action, payload = {} } = req.body || {};
     const invalid = validateAdminAction(action, payload);
     if (invalid) return send(res, invalid.status, { error: invalid.error });
-    if (!officialContractEnabled()) return send(res, 503, { error: officialContractPending });
+    if (!(await resolveDashboardContract()).official) return send(res, 503, { error: officialContractPending });
 
     if (!config.serviceKey) {
       return send(res, 503, {

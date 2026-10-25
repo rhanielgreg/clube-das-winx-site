@@ -1,5 +1,24 @@
 # Missão Master 07 — checkpoint consolidado
 
+## Missão 08 — go-live em execução (25/10/2026)
+
+Este bloco substitui os impedimentos e estados históricos da Missão 07 abaixo.
+
+- Autorização expressa de integração/deploy confirmada. Publicação do site será pelo GitHub/main do Greg, sem procurar/criar projeto na Vercel pessoal do usuário.
+- Backup lógico protegido fora do Git, com recuperação ensaiada em PostgreSQL 17 isolado sem rede. Dados, funções, ACLs, tabelas, defaults e sequências conferidos; precisão de bigint preservada por export como texto. Auth/storage não são escopo dessas migrações.
+- Migrações aplicadas/confirmadas: 002, 003, 004, 006, 005 e 007, nessa ordem. A 001 já estava aplicada. A 007 preparou a ativação, ainda sem habilitar a coorte; ranking legado produtivo continua com quatro vivos. Evidências de cada transação foram salvas fora do Git.
+- 003 exclui registros antigos marcados vivos quando a conta tem observação mais recente morta/desconhecida. Resultado produtivo conferido: quatro vivos. Dados legados não foram apagados.
+- Expansão antes da troca: novos perfis life-v1 ficam fora da competição legada até um lote nativo completo ser confirmado. A ativação privada exige sucesso recente, quantidade esperada e identidade/métricas da mesma execução. Não há associação de histórico por nome.
+- Pontos de cada perfil novo começam na primeira leitura validada; totais TTF observados são mostrados separadamente. Registros, pontos e temporadas legados permanecem intactos, sem atribuição retroativa incerta.
+- Marcador público 006 permite ao frontend comprovar contratos instalados/ativados usando as credenciais públicas existentes. Nenhum RPC v2 é liberado pela mera existência de um commit. Nenhum segredo Vercel foi alterado.
+- Catálogo continua com 100 definições. Mil no contato/fogo/rodas conservam 1.000 sem zeros obrigatórios. Somente Linha de frente — Prata foi ajustada para 2.500 para remover a coincidência com Mil no contato, conforme instrução 08.
+- Contador do ranking usa tentativa real, cron UTC confirmado e relógio do servidor com Age do cache. Ao chegar a zero, espera confirmação; não simula coleta nem reinicia por refresh. Fixtures/dados demo, backups e SQL internos excluídos do pacote Vercel.
+- Ensaios: 70/70 Node 22 e 70/70 Node 24, incluindo o marcador público; 22 testes Python também na imagem Docker 3.12.15; quatro offline TTF. PostgreSQL 17 + PostgREST reais em rede isolada processaram cinco registros da cópia real: quatro vivos, vinte desbloqueios somente no ensaio, replay sem duplicação. Valores de todos os registros legados preservados.
+- Coletor integrado por fast-forward a master e enviado: **5054f307b9594b09eb858d54cb3c9144f67aba62**. Railway comprovou o SHA/branch, build Docker e duas execuções posteriores com SFTP normal e cinco sincronizações, ainda em modo legado. Não foi alterada credencial, salt, servidor, save ou mod.
+- Site ainda em preparação para push/main; estado público anterior registrado: home/ranking/APIs 200, Memorial e /api/release 404. Resultado da publicação será registrado após a tentativa real.
+
+---
+
 Atualizado em 25/10/2026. Continuação do trabalho existente, com as Missões 03–06 preservadas. Este documento registra o estado atual; os checkpoints anteriores permanecem históricos.
 
 ## Produção confirmada e preservada

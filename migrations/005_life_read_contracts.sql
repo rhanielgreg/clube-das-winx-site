@@ -1,16 +1,16 @@
 -- PREPARADA: requer 004. Apenas leituras públicas, sem backfill de identidade.
 begin;
--- Ativação da coorte de vidas certificadas: legados ambíguos ficam preservados,
--- mas não entram na nova competição. Implantar só com a origem v1 pronta.
-create or replace function public.championship_participant_ids_v1(p_season_id uuid)
+-- Prepara leituras da coorte sem mudar a competição ativa. A ativação é 007,
+-- depois de um lote completo nativo confirmado; não há backfill por nome.
+create or replace function public.championship_life_participant_ids_v1(p_season_id uuid)
 returns setof uuid language sql stable security definer set search_path='' as $$
  select c.id from public.game_characters c join public.life_identities li on li.profile_id=c.id
  join public.ranking_seasons s on s.id=p_season_id
  where c.last_seen_at>=s.started_at or exists(select 1 from public.player_statistics_current st where st.season_id=s.id and st.character_id=c.id);
 $$;
-revoke all on function public.championship_participant_ids_v1(uuid) from public,anon,authenticated;
-grant execute on function public.championship_participant_ids_v1(uuid) to service_role;
-create or replace function public.ranking_representatives(p_season_id uuid)
+revoke all on function public.championship_life_participant_ids_v1(uuid) from public,anon,authenticated;
+grant execute on function public.championship_life_participant_ids_v1(uuid) to service_role;
+create or replace function public.ranking_life_representatives_v1(p_season_id uuid)
 returns table(profile_id uuid,season_id uuid,season_name text,rank_position bigint,
  character_name text,steam_username text,alive boolean,kills_total integer,kills_firearm integer,kills_melee integer,survival_seconds bigint,last_updated_at timestamptz)
 language sql stable security definer set search_path='' as $$
@@ -21,25 +21,37 @@ language sql stable security definer set search_path='' as $$
   join public.game_characters c on c.id=st.character_id join public.game_players p on p.id=c.player_id
   join public.life_identities li on li.profile_id=c.id
   where s.id=p_season_id and s.status='active' and c.alive is true and st.kills_total is not null
+   and c.last_seen_at=(select max(latest.last_seen_at) from public.game_characters latest where latest.player_id=c.player_id)
   order by c.player_id,c.last_seen_at desc,st.observed_at desc,c.id
  ) select r.profile_id,r.season_id,r.season_name,row_number() over(order by r.kills_total desc,r.survival_seconds desc nulls last,r.profile_id),
   r.character_name,r.steam_username,r.alive,r.kills_total,r.kills_firearm,r.kills_melee,r.survival_seconds,r.last_updated_at from representatives r;
 $$;
+revoke all on function public.ranking_life_representatives_v1(uuid) from public,anon,authenticated;
+grant execute on function public.ranking_life_representatives_v1(uuid) to service_role;
 create or replace function public.get_public_ranking_life_v1(p_limit integer default 100)
 returns jsonb language sql stable security definer set search_path='' as $$
  select coalesce(jsonb_agg(to_jsonb(r)||jsonb_build_object('life_identity_verified',li.id is not null,
   'distance_total_m',case when li.metrics->'distance_total_m'->>'unit'='meters' then li.metrics->'distance_total_m'->'value' else null end,
   'distance_unit','meters','kills_vehicle',st.kills_vehicle,'kills_other',st.kills_other) order by r.rank_position),'[]')
- from public.get_public_ranking(p_limit) r
+ from public.ranking_seasons season cross join lateral public.ranking_life_representatives_v1(season.id) r
  left join public.life_identities li on li.profile_id=r.profile_id
- left join public.player_statistics_current st on st.season_id=r.season_id and st.character_id=r.profile_id;
+ left join public.player_statistics_current st on st.season_id=r.season_id and st.character_id=r.profile_id
+ where season.status='active' and r.rank_position<=least(greatest(p_limit,1),100);
 $$;
 create or replace function public.get_public_graveyard_life_v1(p_limit integer default 50)
 returns jsonb language sql stable security definer set search_path='' as $$
  select coalesce(jsonb_agg(to_jsonb(r)||jsonb_build_object('life_identity_verified',li.id is not null,
   'distance_total_m',case when li.metrics->'distance_total_m'->>'unit'='meters' then li.metrics->'distance_total_m'->'value' else null end,
   'distance_unit','meters') order by r.died_at desc nulls last,r.profile_id),'[]')
- from public.get_public_graveyard_v2(p_limit) r left join public.life_identities li on li.profile_id=r.profile_id;
+ from public.get_public_graveyard_v2(p_limit) r left join public.life_identities li on li.profile_id=r.profile_id
+ where li.id is not null or not exists(
+  select 1 from public.game_characters old join public.game_players old_player on old_player.id=old.player_id
+  join public.game_characters fresh on fresh.source_blob_sha256=old.source_blob_sha256 and fresh.id<>old.id
+  join public.life_identities known on known.profile_id=fresh.id
+  join public.game_players fresh_player on fresh_player.id=fresh.player_id
+  where old.id=r.profile_id and old_player.steam_username=fresh_player.steam_username
+   and known.last_observed_at>=old.last_seen_at
+ );
 $$;
 create or replace function public.get_public_memorial_honors_v1()
 returns jsonb language plpgsql stable security definer set search_path='' as $$

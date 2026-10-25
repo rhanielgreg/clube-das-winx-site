@@ -13,10 +13,11 @@ const metrics=(values)=>Object.fromEntries(Object.entries(values).map(([k,v])=>[
 async function database(){
  const db=new PGlite();
  await db.exec(await readFile(new URL('./fixtures/schema-before.sql',import.meta.url),'utf8'));
- for(const file of ['001_restrict_ingestion','002_public_read_contracts','003_official_championship','004_life_achievements','005_life_read_contracts']) {
+ for(const file of ['001_restrict_ingestion','002_public_read_contracts','003_official_championship','004_life_achievements','006_dashboard_release','005_life_read_contracts','007_controlled_life_activation']) {
   const sql=await readFile(new URL('../migrations/'+file+'.sql',import.meta.url),'utf8');await db.exec(sql);await db.exec(sql);
  }
  await db.exec("insert into ranking_seasons(name,slug,status,started_at) values('Teste','teste','active',now()-interval '1 day')");
+ await db.exec('update dashboard_rollout_state set life_enabled=true');
  return db;
 }
 async function ingest(db,values,{token=life,alive=true,at=new Date().toISOString(),hash='c'.repeat(64),name='Nome reutilizado'}={}) {
@@ -36,6 +37,7 @@ test('exatamente 100 critérios estáveis: 30 progressões completas e 10 especi
 test('três marcos de mil kills independem dos outros métodos e aceitam cobertura parcial comprovada',async()=>{
  const approved={ 'arsenal-fogo':'kills_firearm','arsenal-contato':'kills_melee','arsenal-rodas':'kills_vehicle' };
  for(const [id,key] of Object.entries(approved))assert.deepEqual(achievementCatalog.find(a=>a.id===id).criteria,[{metric:key,op:'gte',value:1000}]);
+ assert.deepEqual(achievementCatalog.filter(a=>a.sequence==='linha-frente').map(a=>a.criteria[0].value),[100,2500,5000]);
  const db=await database();
  try {
   const at=Date.now()-2000;
@@ -175,6 +177,26 @@ test('coorte certificada não mistura legado e estado desconhecido não encerra 
   assert.equal((await db.query('select outcome from season_results')).rows[0].outcome,'apocalypse');
   assert.equal((await db.query('select count(*) n from season_winners')).rows[0].n,0);
   assert.deepEqual((await db.query('select profile_id from season_classification')).rows.map(r=>r.profile_id),[profile]);
+ }finally{await db.close();}
+});
+test('ativação preserva competição legada durante preparação e exige lote completo antes de trocar a coorte',async()=>{
+ const db=await database();
+ try{
+  await db.exec('update dashboard_rollout_state set life_enabled=false');
+  const legacy=(await db.query("select ingest_player_observation('legacy-player','legacy-character','Legado',true,'legacy',now(),1000,0,1000,100,'Conta') id")).rows[0].id;
+  const before=(await db.query('select * from player_statistics_current where character_id=$1',[legacy])).rows;
+  const run=(await db.query("insert into collector_runs(status) values('running') returning id")).rows[0].id;
+  const profile=await ingest(db,metrics({kills_total:1000}));
+  assert.deepEqual((await db.query('select * from get_public_ranking(100)')).rows.map(r=>r.profile_id),[legacy]);
+  await assert.rejects(db.query('select activate_verified_cohort_v1($1,1)',[world]),/complete collector/);
+  await db.query("update collector_runs set status='success',finished_at=clock_timestamp(),records_seen=1 where id=$1",[run]);
+  await assert.rejects(db.query('select activate_verified_cohort_v1($1,2)',[world]),/complete collector/);
+  await db.query('select activate_verified_cohort_v1($1,1)',[world]);
+  assert.deepEqual((await db.query('select * from get_public_ranking(100)')).rows.map(r=>r.profile_id),[profile]);
+  assert.deepEqual((await db.query('select * from player_statistics_current where character_id=$1',[legacy])).rows,before);
+  assert.equal((await db.query('select get_public_dashboard_release_v1() r')).rows[0].r.life_contract_version,'life-v1');
+  await db.exec('set role anon');
+  await assert.rejects(db.query('select activate_verified_cohort_v1($1,1)',[world]),e=>e.code==='42501');
  }finally{await db.close();}
 });
 

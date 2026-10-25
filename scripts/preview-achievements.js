@@ -6,7 +6,7 @@ export async function createAchievementDemo() {
  const db=new PGlite();
  try {
   await db.exec(await readFile(new URL('../tests/fixtures/schema-before.sql',import.meta.url),'utf8'));
-  for(const name of ['001_restrict_ingestion','002_public_read_contracts','003_official_championship','004_life_achievements','005_life_read_contracts']) await db.exec(await readFile(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
+  for(const name of ['001_restrict_ingestion','002_public_read_contracts','003_official_championship','004_life_achievements','006_dashboard_release','005_life_read_contracts','007_controlled_life_activation']) await db.exec(await readFile(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
   await db.exec("insert into ranking_seasons(name,slug,started_at) values('Demonstração local','demo',now()-interval '1 day')");
   const numbers={kills_total:1248,kills_firearm:182,kills_melee:766,kills_vehicle:250,kills_other:50,
    kills_axe:300,kills_blunt:150,kills_small_blunt:50,kills_long_blade:100,kills_small_blade:66,kills_spear:70,kills_unarmed:30,

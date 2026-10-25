@@ -2,7 +2,7 @@ import { callPublicRpc, isStale } from '../lib/supabase-public.js';
 import { enrichRankingWithAvatars } from '../lib/steam-avatar.js';
 import { normalizeCharacter } from '../public/contracts.js';
 import { livingRanking, OFFICIAL_RULES } from '../public/championship.js';
-import { officialContractEnabled, officialContractPending, lifeContractEnabled } from '../lib/championship-contract.js';
+import { resolveDashboardContract, officialContractPending } from '../lib/championship-contract.js';
 
 function send(res, status, body) {
   res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -16,11 +16,12 @@ export default async function handler(req, res) {
     return send(res, 405, { error: 'Método não permitido.' });
   }
 
-  if (!officialContractEnabled() && process.env.SUPABASE_URL && (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY)) {
+  const contract=await resolveDashboardContract();
+  if (!contract.official && process.env.SUPABASE_URL && (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY)) {
     return send(res, 503, { state: 'awaiting_official_contract', error: officialContractPending, ranking: [], seasons: [] });
   }
   try {
-    const lifeEnabled=lifeContractEnabled();
+    const lifeEnabled=contract.life;
     const [rankingResult, seasonsResult, syncResult, graveyardResult,honorsResult] = await Promise.all([
       callPublicRpc(lifeEnabled?'get_public_ranking_life_v1':'get_public_ranking', { p_limit: 100 }),
       callPublicRpc('get_public_seasons_v2', { p_limit: 8 }),
@@ -56,9 +57,12 @@ export default async function handler(req, res) {
       graveyard,
       graveyard_state: Array.isArray(graveyardResult.data) ? 'ready' : 'unavailable',
       time_metric: 'played_seconds',
-      life_identity_verified: false,
+      life_identity_verified: lifeEnabled&&ranking.length>0&&ranking.every(row=>row.life_identity_verified===true),
+      server_time:contract.release?.server_time||new Date().toISOString(),
+      cohort_started_at:contract.release?.cohort_started_at||null,
       seasons: seasonsResult.data ?? [],
-      sync,
+      sync:sync?{...sync,...(contract.release?{latest_attempt_at:contract.release.latest_attempt_at,latest_attempt_status:contract.release.latest_attempt_status,
+        collector_interval_seconds:contract.release.collector_interval_seconds,collector_cron_utc:contract.release.collector_cron_utc}: {})}:null,
       stale: isStale(sync?.last_success_at)||['failed','running'].includes(sync?.latest_attempt_status),
       message: ranking.length
         ? null

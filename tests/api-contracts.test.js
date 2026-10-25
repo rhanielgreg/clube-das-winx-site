@@ -98,14 +98,15 @@ for (const outcome of ['champion','apocalypse']) {
 test('contrato oficial desabilitado bloqueia novos RPCs e encerramento sem fallback legado', async (t) => {
   await isolated(t,{mock:async(url)=>{
     if(url.endsWith('/auth/v1/user')) return Response.json({email:'admin@example.invalid'});
+    if(url.endsWith('get_public_dashboard_release_v1'))return new Response('{}',{status:404});
     if(url.endsWith('get_public_player')) return Response.json([{profile_id:profileId,season_id:seasonId,alive:true}]);
     assert.ok(url.endsWith('get_public_player_history_v2'),'somente histórico já existente na migração 002');
     return Response.json([]);
   },check:async(calls)=>{
     delete process.env.COMPETITION_RULES_VERSION;
-    const ranks=response();await ranking({method:'GET'},ranks);assert.equal(ranks.code,503);assert.equal(calls.length,0);
+    const ranks=response();await ranking({method:'GET'},ranks);assert.equal(ranks.code,503);assert.equal(calls.length,1,'somente descoberta de contrato, sem RPC v2');
     const closed=response();await admin({method:'POST',headers:{authorization:'Bearer fake'},body:{action:'close_season',payload:{season_id:seasonId}}},closed);
-    assert.equal(closed.code,503);assert.equal(calls.length,1,'só autenticação; nenhum RPC de escrita');
+    assert.equal(closed.code,503);assert.equal(calls.length,3,'autenticação e descoberta; nenhum RPC de escrita');
     const profile=response();await player({method:'GET',query:{id:profileId}},profile);
     assert.equal(profile.code,200);assert.equal(profile.body.titles_state,'unavailable');
     assert.ok(calls.every(call=>!call.url.endsWith('get_public_player_titles')&&!call.url.endsWith('get_public_seasons_v2')&&!call.url.includes('close_ranking_season')));
