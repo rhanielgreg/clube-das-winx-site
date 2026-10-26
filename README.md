@@ -4,13 +4,13 @@ Portal gamer hospedável na Vercel, com status real A2S, comandos Discord via In
 
 Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway é mantido separadamente em [clube-das-winx-collector](https://github.com/rhanielgreg/clube-das-winx-collector). A pasta local `collector/` não faz parte deste repositório.
 
-## Missão 09 — refinamentos aprovados
+## Missão 09 — publicada e validada
 
-Refinamentos consolidados em `codex/mission09`, com integração produtiva autorizada. `npm run preview:public` abre [a prévia somente leitura com dados públicos reais](http://127.0.0.1:4174/). Migração 008 aplicada após recuperação ensaiada: prazo de 30/11/2026 às 23h59 de Brasília, com encerramento manual e leitura habilitada por marcador verificável. A revisão publicada é comprovada por `/api/release`. Implementação, testes e pendências no [checkpoint](docs/MASTER07-CHECKPOINT.md).
+Refinamentos integrados de `codex/mission09` à `main` e publicados no [domínio original](https://clubedaswinx-delta.vercel.app/), com sucesso da Vercel e SHA funcional `b3b594d` comprovado por `/api/release`. Migração 008 aplicada após recuperação ensaiada: prazo de 30/11/2026 às 23h59 de Brasília, com encerramento manual e leitura habilitada por marcador verificável. Testes após integração: 82/82 em Node 22 e 82/82 em Node 24; páginas/APIs e navegação desktop/mobile conferidas em produção. Coletor e credenciais preservados. Evidências e limites de identidade/conquistas no [checkpoint](docs/MASTER07-CHECKPOINT.md).
 
-## Integração e publicação — Missão 08
+## Publicação anterior — Missão 08
 
-Versão publicada e validada no [domínio original](https://clubedaswinx-delta.vercel.app/), commit `323d965`. O marcador `/api/release` comprova a revisão. Leitor TTF/coorte seguem desativados e não há medalhas reais concedidas; detalhes e pendências no checkpoint.
+Publicação anterior no domínio original, commit `323d965`, superada pela Missão 09 acima. Leitor TTF/coorte seguem desativados e não há medalhas reais concedidas; detalhes e pendências no checkpoint.
 
 Estado atual, testes, contratos de vida/conquistas e transição pendente: [checkpoint consolidado](docs/MASTER07-CHECKPOINT.md). A correção limitada de permissões 001 foi aplicada e verificada; as migrações 002–004/006/005 foram aplicadas na Missão 08 após recuperação ensaiada. A ativação da coorte e a publicação do site têm seu estado registrado no checkpoint. A coleta produtiva voltou a funcionar após a correção SFTP feita pelo usuário. Os checkpoints anteriores permanecem históricos.
 
@@ -32,7 +32,7 @@ O histórico da [Missão 06](docs/MISSION06.md) registra decisões e testes ante
 
 Clone o repositório, use Node.js 22 e execute `npm ci`. Copie `.env.example` para `.env` e preencha somente as variáveis necessárias ao seu trabalho. Nunca compartilhe nem faça commit de `.env`, tokens, credenciais SFTP ou chaves secretas do Supabase.
 
-Crie uma branch para cada alteração e abra um Pull Request para `main`. Execute `npm run check` antes de enviar. O deploy em produção continua separado; subir código aqui não conecta automaticamente o projeto à Vercel.
+Crie uma branch para cada alteração e abra um Pull Request para `main`. Execute `npm run check` antes de enviar. A integração existente GitHub → Vercel publica a `main` no projeto do Greg; confirme sempre o check do deployment e o SHA público, pois push sozinho não comprova publicação.
 
 ## O que está implementado
 
