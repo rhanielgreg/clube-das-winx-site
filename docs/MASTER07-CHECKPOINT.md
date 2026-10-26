@@ -1,5 +1,16 @@
 # Missão Master 07 — checkpoint consolidado
 
+## Missão 09 — integração produtiva autorizada (26/10/2026)
+
+Este bloco atualiza o estado de preparação abaixo. Publicação deve ser comprovada pelo SHA público, sem equiparar push a deploy.
+
+- Main remota buscada e conferida: 323d965, sem novos commits de terceiros. Missão 09 preservada em 7770efb/421d395; integração por fast-forward quando possível, sem force/reset.
+- **008 aplicada às 10:08 BRT** na Temporada 1 correta, após export consistente atual e restauração isolada de 15 tabelas/33 funções. Prazo registrado: **30/11/2026 23h59 America/Sao_Paulo**. Status continua active e ended_at null; nenhum encerramento foi executado.
+- Recuperação pós-008 também ensaiada: 15 tabelas/34 funções, dados integrais, extraídos do texto bruto do resultado para preservar espaços. Todos os 8.263 snapshots anteriores e execuções antigas permanecem presentes. Definição de ingestão conserva MD5 original **8354bb28b0def62d2a214381f4e12d6c**; anon/authenticated continuam sem executar ingestão, service_role autorizado, readiness verdadeiro, 100 definições e coorte desativada.
+- Leitura de calendário habilitada por `season_schedule_contract_version` no marcador público instalado pela 008. Evita alterar segredos/env da Vercel; sem marcador ou flag explícita não consulta RPC inexistente. `/api/release` passa a identificar mission09. Configuração de produção/main preservada; previews das branches de trabalho desabilitados.
+- Coletor master5054f30 e credenciais preservados. Últimas cinco execuções conferidas com sucesso e cinco registros cada. Nenhum teste sintético em produção nem alteração no jogo/TTF.
+- Resultado do deployment e verificações do domínio original serão registrados após o push efetivo.
+
 ## Missão 09 — refinamentos implementados, ainda não publicados (26/10/2026)
 
 Estado de desenvolvimento vigente: branch local `codex/mission09`, criada de `af4af88`, preservando todas as missões anteriores. Commit funcional **7770efb**; documentação em commit posterior. Esta rodada autoriza desenvolvimento/commits, sem push, deploy ou migração produtiva.

@@ -1,5 +1,7 @@
 -- Export lógico SOMENTE LEITURA do domínio public da aplicação.
--- Versão pós-migrações 001–007. Salvar fora do Git com ACL local restrita.
+-- Compatível com as migrações 001–008. Salvar fora do Git com ACL local restrita.
+-- Preservar o texto bruto do resultado (textContent/export), não innerText:
+-- a renderização visual pode colapsar espaços de definições e dados.
 -- Não é backup de auth/storage. O commit inicial da 08 contém o export pré-expansão.
 begin isolation level repeatable read read only;
 select jsonb_build_object(

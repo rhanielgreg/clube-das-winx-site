@@ -82,6 +82,7 @@ test('prazo exige contrato confirmado e usa Brasília; ended_at não vira previs
  assert.deepEqual(await withSeasonSchedule([active],env),[active]);assert.equal(calls,0);
  const result=await withSeasonSchedule([active],{...env,SEASON_SCHEDULE_CONTRACT_VERSION:'season-schedule-v1'});
  assert.equal(result[0].schedule_verified,true);assert.equal(calls,1);
+ const automatic=await withSeasonSchedule([active],env,{season_schedule_contract_version:'season-schedule-v1'});assert.equal(automatic[0].schedule_verified,true);assert.equal(calls,2);
  missing=true;
  assert.deepEqual(await withSeasonSchedule([active],{...env,SEASON_SCHEDULE_CONTRACT_VERSION:'season-schedule-v1'}),[active]);
 });
@@ -89,10 +90,11 @@ test('prazo exige contrato confirmado e usa Brasília; ended_at não vira previs
 test('proposta 008 guarda prazo sem encerrar temporada, preserva linhas e recusa divergência',async()=>{
  const db=new PGlite();
  try {
-  await db.exec(`create role anon;create role authenticated;create role service_role;create table ranking_seasons(id uuid primary key,name text,status text,ended_at timestamptz);insert into ranking_seasons values('${season}','Temporada 1','active',null),('${id}','Outra','closed','2026-10-20T00:00:00Z');`);
+  await db.exec(`create role anon;create role authenticated;create role service_role;create table dashboard_rollout_state(id boolean primary key,life_enabled boolean,cohort_started_at timestamptz);insert into dashboard_rollout_state values(true,false,null);create table collector_runs(id uuid,started_at timestamptz,status text);create table ranking_seasons(id uuid primary key,name text,status text,ended_at timestamptz);insert into ranking_seasons values('${season}','Temporada 1','active',null),('${id}','Outra','closed','2026-10-20T00:00:00Z');`);
   const sql=await readFile(new URL('../migrations/008_season_schedule.sql',import.meta.url),'utf8');await db.exec(sql);
   const data=(await db.query('select * from get_public_season_schedule_v1($1)',[season])).rows[0];
   assert.equal(new Date(data.scheduled_end_at).toISOString(),'2026-12-01T02:59:00.000Z');assert.equal(data.closure_mode,'manual');
+  assert.equal((await db.query('select get_public_dashboard_release_v1() data')).rows[0].data.season_schedule_contract_version,'season-schedule-v1');
   assert.equal((await db.query('select status from ranking_seasons where id=$1',[season])).rows[0].status,'active');
   assert.equal((await db.query('select count(*) n from ranking_seasons')).rows[0].n,2);
   await db.exec(sql);

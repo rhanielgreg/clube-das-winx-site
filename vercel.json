@@ -59,7 +59,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "codex/mission07": false
+      "codex/mission07": false,
+      "codex/mission09": false
     }
   }
 }
