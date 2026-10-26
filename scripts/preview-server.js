@@ -7,7 +7,7 @@ import { demoRanking, demoPlayer, demoStatus } from '../public/demo-data.js';
 const root = fileURLToPath(new URL('../public/', import.meta.url));
 const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.webp': 'image/webp', '.ttf': 'font/ttf', '.svg': 'image/svg+xml' };
 const pages = { '/': 'index.html', '/ranking': 'ranking.html', '/jogador': 'jogador.html', '/memorial': 'memorial.html', '/admin': 'admin.html', '/painel': 'admin.html' };
-export function createPreviewServer() {
+export function createPreviewServer({rankingFactory=demoRanking}={}) {
   let achievementDemo;
   const server = http.createServer(async (req, res) => {
     res.setHeader('cache-control', 'no-store');
@@ -27,7 +27,7 @@ export function createPreviewServer() {
       if (url.pathname.startsWith('/api/')) {
         if (url.searchParams.get('scenario') === 'offline' && ['/api/ranking', '/api/player'].includes(url.pathname)) return json(503, { error: 'Falha simulada de consulta. Nenhum serviço real foi acessado.' });
         if (url.pathname === '/api/config') return json(200, { demo: true, admin_enabled: false });
-        if (url.pathname === '/api/ranking') return json(200, demoRanking(url.searchParams.get('scenario')));
+        if (url.pathname === '/api/ranking') return json(200, rankingFactory(url.searchParams.get('scenario')));
         if (url.pathname === '/api/player') {
           const player=demoPlayer(url.searchParams.get('id'),url.searchParams.get('scenario'));
           if(player && url.searchParams.get('scenario')==='achievements' && player.profile.profile_id.endsWith('000000000001')) {

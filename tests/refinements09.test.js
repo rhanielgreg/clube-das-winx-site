@@ -30,12 +30,12 @@ test('histórico pagina dez coletas recentes primeiro, mantém ausentes e não a
  assert.equal(JSON.stringify(rows),before);
 });
 
-test('lápide usa morte registrada, nunca última observação; UUID só na rota e distância validada',()=>{
+test('lápide usa morte registrada, nunca última observação; sem rota de dossiê e distância validada',()=>{
  const row={profile_id:id,character_name:'Nome completo muito comprido <script>',steam_username:'Conta',alive:false,kills_total:0,survival_seconds:0,last_updated_at:'2026-10-26T15:00:00Z'};
  const unknown=memorialCard(row,displayDate);
  assert.ok(unknown.includes('Data de morte não informada'));assert.ok(!unknown.includes('26/10/2026'));
  assert.ok(unknown.includes('Nome completo muito comprido &lt;script&gt;'));assert.ok(!unknown.includes('<script>'));
- assert.ok(!unknown.replace(/<[^>]*>/g,'').includes(id));assert.ok(unknown.includes('/jogador?id='+id));
+ assert.ok(!unknown.replace(/<[^>]*>/g,'').includes(id));assert.ok(!unknown.includes('/jogador'));assert.ok(!unknown.includes(id));
  assert.equal(verifiedDistance({...row,distance_total_m:1234,distance_unit:'meters'}),null);
  const known=memorialCard({...row,died_at:'2026-10-24T18:00:00Z',life_identity_verified:true,distance_total_m:1234,distance_unit:'meters'},displayDate);
  assert.ok(known.includes('24/10/2026'));assert.ok(known.includes('DISTÂNCIA TOTAL PERCORRIDA'));assert.ok(known.includes('1,234 km'));
@@ -137,10 +137,10 @@ test('008 é compatível com 001–007: ingestão legada, pontos, snapshots e AC
  }finally{await db.close();}
 });
 
-test('rodapé único nas cinco telas e limpeza não remove rotas, contador ou conexões',async()=>{
+test('rodapé único nas telas públicas vigentes e limpeza não remove rotas, contador ou conexões',async()=>{
  assert.ok(footerHtml().includes('© 2026 Clube das Winx · Desenvolvido por Greg e Emmanuel / Galera Nerd'));
  assert.ok(!footerHtml().includes('Sobreviva à temporada'));
- for(const file of ['index','ranking','memorial','jogador','admin']) {
+ for(const file of ['index','ranking','memorial','admin']) {
   const html=await readFile(new URL(`../public/${file}.html`,import.meta.url),'utf8');
   assert.ok(html.includes('data-site-footer'));
   assert.doesNotMatch(html,/>0[123] \/|hero-hud|hero-description|hero-memorial-link|Latência da consulta|data-server-latency|memorial-disclaimer/);

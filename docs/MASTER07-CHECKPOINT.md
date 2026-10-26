@@ -1,5 +1,20 @@
 # Missão Master 07 — checkpoint consolidado
 
+## Missão 10 — implementação validada para publicação (26/10/2026)
+
+Este bloco prevalece sobre a interface da Missão 09 abaixo; a publicação será comprovada pelo deployment e SHA público, não pelo commit local.
+
+- Ranking: contador sazonal `dias/horas/minutos/segundos` usa exclusivamente prazo verificado com offset, referência de servidor/Age e avanço monotônico já usados pela coleta. Brasília explícita na data, sem requisições por segundo. Prazo vencido aguarda encerramento oficial; nenhuma escrita, campeão ou encerramento automático. Relógio/prazo ausente não inventa números. Contador de coleta continua independente e seu módulo não foi alterado.
+- Removida contagem de registros do título, mantidos filtros/busca/regras/representantes/avatares. Linhas com avatar 56 px, mais espaço e nomes legíveis; MVP preservado com texto “Líder atual”. Sobreviventes passam a cards informativos, sem CTA individual, e recebem a frase aprovada.
+- Memorial: homenagem literal aprovada, conta do jogador centralizada/15 px/maior contraste, lápides/datas/estatísticas e busca preservadas. Sem “Ver dossiê” ou links nos reconhecimentos; espaçamento final restrito ao Memorial, 29 px medidos no cenário móvel.
+- Dossiê público descontinuado, sem apagar dados: `/jogador` e `/jogador.html` mantêm handler mínimo cliente, consulta GET ao `/api/player` existente apenas para UUID válido, morte booleana no perfil exato → Memorial; vivo/desconhecido/falha → Ranking. Destinos fixos e `location.replace`, sem loops ou retorno controlado por parâmetros. API, histórico, SQL, identidade, módulos internos e catálogo/motor das 100 conquistas preservados; somente a renderização obsoleta foi retirada do site.js.
+- Início/Servidor congelados: CSS antigo e funções de status/navegação preservados e comparados com c35e1ce. Exceção mínima: CTA antigo “Ver dossiê do MVP” vira “Ver ranking”, mesmo estilo/local; destinos dos links de pessoas vão ao Ranking. Nenhuma alteração de layout, API de status, banner ou conexão.
+- Kills: `collector/stats.py` valida `TTF_KillStats.categories` e reconcilia armas/Vehicle; a ingestão legada entrega somente total/Firearm/soma MELEE. Veículos e Other existem na origem/leitor opt-in, mas não estão no contrato produtivo sazonal atual. Não se atribuiu a diferença 342−39−183=120 a veículos, não se criaram campos derivados nem se combinaram vidas. Interface preserva as duas categorias disponíveis e informa que o total inclui modalidades sem detalhamento confirmado. Decomposição completa fica para contrato futuro validado.
+- Distância: origem `distanceTracker` lida por `ttf_saved_life.extract_saved_lives`, com unidade metros/código do mod anteriormente conferidos, mas emissor nativo/coorte continuam desativados e identidade/cobertura ainda não permitem apresentação sazonal segura. Sem distância inventada/zero e sem ativação ou migração nesta missão.
+- Validação atual: 93/93 Node 22.23.4 e 93/93 Node 24.15.0, sem ignorados. Onze novos testes cobrem fusos UTC/Brasília/Los Angeles/Tóquio, futuro/zero/vencido/fechado/ausente/inválido, redirecionamentos e preservação. Uma execução paralela nativa de imagem terminou sem diagnóstico; teste isolado e suíte completa repetida passaram. Catálogo 100 sincronizado e whitespace/sintaxe aprovados. Navegador local com fixtures identificadas: poucos/35 participantes, nomes longos, busca, contadores separados, vencido sem fechamento, prazo ausente e Memorial a 390 px sem overflow. Fixtures ficam fora do pacote Vercel.
+- Arquivos: site.js, Ranking/Memorial, CSS restrita, season-schedule, memorial-view, página mínima/novo profile-redirect, release, exceção de CTA da Home, testes e suporte de fixture no preview-server. Supabase/Railway/BisectHosting/coletor não alterados; nenhuma migração necessária.
+
+
 ## Missão 09 — publicação produtiva confirmada (26/10/2026)
 
 **Este bloco é o estado vigente. Todos os blocos seguintes registram etapas anteriores; suas pendências de autorização/publicação foram superadas quando indicado aqui.**

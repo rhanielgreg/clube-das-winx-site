@@ -577,3 +577,27 @@ body.is-preview { padding-top: var(--demo-height); }
   .dossier-metrics { gap: 18px; }
 }
 @media(prefers-reduced-motion:reduce) { .live-dot.is-online { animation: none; } }
+
+/* Missão 10: ajustes restritos ao Ranking e ao Memorial aprovados. */
+body[data-page="ranking"] .season-chip .season-countdown { display: block; margin-top: 14px; font-size: clamp(16px,1.5vw,21px); font-weight: 700; line-height: 1.6; color: #f4d8e7; font-variant-numeric: tabular-nums; }
+body[data-page="ranking"] .ranking-board .ranking-table td { padding-block: 26px; }
+body[data-page="ranking"] .ranking-board .player-cell { min-height: 74px; gap: 16px; }
+body[data-page="ranking"] .ranking-board .player-avatar { width: 56px; height: 56px; flex-shrink: 0; }
+body[data-page="ranking"] .ranking-board .player-name { display: block; font-size: 17px; line-height: 1.55; color: #f3e5ed; overflow-wrap: anywhere; word-break: normal; }
+body[data-page="ranking"] .ranking-board .player-cell small { font-size: 12px; line-height: 1.7; }
+body[data-page="ranking"] .combat-note { margin: 0; padding: 0 22px 20px; font-size: 12px; line-height: 1.8; color: #cdbac6; }
+body[data-page="ranking"] .survivor-summary { align-items: center; }
+body[data-page="ranking"] .survivor-summary img { width: 60px; height: 60px; object-fit: contain; }
+body[data-page="ranking"] .survivor-summary h3 { font-size: 21px; line-height: 1.4; }
+body[data-page="ranking"] .survivor-summary p { margin-bottom: 0; margin-top: 8px; line-height: 1.7; }
+body[data-page="memorial"] .memorial-hero .page-intro { max-width: 850px; line-height: 1.9; text-wrap: pretty; }
+body[data-page="memorial"] .memorial-account { text-align: center; font-size: 15px; font-weight: 600; line-height: 1.7; color: #eed4e2; margin-block: 4px 24px; }
+body[data-page="memorial"] .page-main { padding-bottom: 28px; }
+body[data-page="memorial"] .page-main>.back-link { margin-bottom: 0; }
+@media(max-width:600px) {
+  body[data-page="ranking"] .season-chip .season-countdown { font-size: 18px; }
+  body[data-page="ranking"] .ranking-board .ranking-table td { padding-block: 21px; }
+  body[data-page="ranking"] .survivor-summary { padding: 20px; gap: 16px; }
+  body[data-page="ranking"] .survivor-summary h3 { font-size: 21px; }
+  body[data-page="memorial"] .memorial-hero .page-intro { font-size: 13px; }
+}

@@ -44,7 +44,7 @@ test('recuperação visual usa os mesmos caminhos e mantém dados demo fora dos 
     }
     const ranking = await (await fetch(base + '/ranking')).text();
     assert.ok(ranking.includes('id="sobreviventes"'));
-    for (const page of ['/index.html', '/ranking', '/jogador', '/memorial']) {
+    for (const page of ['/index.html', '/ranking', '/memorial']) {
       const html = await (await fetch(base + page)).text();
       for (const href of ['/index.html#servidor', '/ranking#sobreviventes', '/memorial']) assert.ok(html.includes(`href="${href}"`));
     }

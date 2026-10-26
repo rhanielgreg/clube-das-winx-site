@@ -4,6 +4,10 @@ Portal gamer hospedável na Vercel, com status real A2S, comandos Discord via In
 
 Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway é mantido separadamente em [clube-das-winx-collector](https://github.com/rhanielgreg/clube-das-winx-collector). A pasta local `collector/` não faz parte deste repositório.
 
+## Missão 10 — última lapidação
+
+Contador oficial da temporada separado da coleta, Ranking mais legível, Memorial com homenagem/conta destacada e dossiês públicos substituídos por redirecionamentos seguros. Dados, APIs e 100 critérios preservados. Testes atuais: 93/93 em Node 22 e 93/93 em Node 24; estado da publicação e limites de métricas no [checkpoint](docs/MASTER07-CHECKPOINT.md).
+
 ## Missão 09 — publicada e validada
 
 Refinamentos integrados de `codex/mission09` à `main` e publicados no [domínio original](https://clubedaswinx-delta.vercel.app/), com sucesso da Vercel e SHA funcional `b3b594d` comprovado por `/api/release`. Migração 008 aplicada após recuperação ensaiada: prazo de 30/11/2026 às 23h59 de Brasília, com encerramento manual e leitura habilitada por marcador verificável. Testes após integração: 82/82 em Node 22 e 82/82 em Node 24; páginas/APIs e navegação desktop/mobile conferidas em produção. Coletor e credenciais preservados. Evidências e limites de identidade/conquistas no [checkpoint](docs/MASTER07-CHECKPOINT.md).
@@ -38,7 +42,7 @@ Crie uma branch para cada alteração e abra um Pull Request para `main`. Execut
 
 - Portal responsivo com motion contínuo, painel lateral de ranking e identidade rosa/pós-apocalíptica.
 - `/ranking` com “O Sobrevivente Supremo”, filtros condicionais e histórico de temporadas.
-- `/jogador?id=UUID` com perfil e evolução pública, sem Steam ID, IP ou coordenadas.
+- URLs antigas `/jogador?id=UUID` redirecionam ao Memorial quando a morte do perfil exato está confirmada, ou ao Ranking nos demais casos; API e histórico permanecem preservados.
 - `/server` e `/status` no Discord, assinatura Ed25519 e card PNG dinâmico.
 - `/api/status`, `/api/connect`, `/api/ranking` e `/api/player` na Vercel.
 - Coletor Python mantido em repositório separado; agendamento depende do ambiente Railway.
