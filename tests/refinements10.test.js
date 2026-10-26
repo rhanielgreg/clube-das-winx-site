@@ -11,7 +11,7 @@ import { profileMetrics } from '../public/presentation.js';
 const id='20000000-0000-4000-8000-000000000001';
 const active={status:'active',schedule_verified:true,scheduled_end_at:'2026-12-01T02:59:00Z',closure_mode:'manual'};
 const deadline=Date.parse(active.scheduled_end_at);
-const source=path=>readFile(new URL('../'+path,import.meta.url),'utf8');
+const source=async path=>(await readFile(new URL('../'+path,import.meta.url),'utf8')).replaceAll('\r\n','\n');
 const prior=path=>execFileSync('git',['show','c35e1ce:'+path],{encoding:'utf8'}).replaceAll('\r\n','\n');
 
 test('prazo futuro usa dias/horas/minutos/segundos e não muda os dados da temporada',()=>{
