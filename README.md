@@ -6,6 +6,8 @@ Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway 
 
 ## Integração e publicação — Missão 08
 
+Versão publicada e validada no [domínio original](https://clubedaswinx-delta.vercel.app/), commit `323d965`. O marcador `/api/release` comprova a revisão. Leitor TTF/coorte seguem desativados e não há medalhas reais concedidas; detalhes e pendências no checkpoint.
+
 Estado atual, testes, contratos de vida/conquistas e transição pendente: [checkpoint consolidado](docs/MASTER07-CHECKPOINT.md). A correção limitada de permissões 001 foi aplicada e verificada; as migrações 002–004/006/005 foram aplicadas na Missão 08 após recuperação ensaiada. A ativação da coorte e a publicação do site têm seu estado registrado no checkpoint. A coleta produtiva voltou a funcionar após a correção SFTP feita pelo usuário. Os checkpoints anteriores permanecem históricos.
 
 O catálogo tem exatamente 100 definições e motor SQL persistente por vida; isso não significa 100 conquistas disponíveis em produção. As três especiais de mil kills foram corrigidas após a [revisão das 100 definições e aprovação específica](docs/ACHIEVEMENTS-REVIEW07.md). A origem existente fornece `TTFStatsMP.characterID` e distância total, mas seu ciclo completo de vida ainda exige validação. `LIFE_CONTRACT_VERSION` permanece desabilitado até a transição segura de 004/005 e da coleta legítima.
