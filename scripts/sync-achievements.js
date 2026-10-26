@@ -6,5 +6,5 @@ const seed=`${start}\ndo $seed$\ndeclare catalog jsonb:=$catalog$${JSON.stringif
 let source=await readFile(path,'utf8');
 const a=source.indexOf(start),b=source.indexOf(end);
 const updated=a<0?source.replace("notify pgrst,'reload schema';",seed+"\nnotify pgrst,'reload schema';"):source.slice(0,a)+seed+source.slice(b+end.length);
-if(process.argv.includes('--check')) {if(source!==updated)throw new Error('SQL catalog differs from source');console.log('100 definições sincronizadas.');}
+if(process.argv.includes('--check')) {if(source.replace(/\r\n/g,'\n')!==updated.replace(/\r\n/g,'\n'))throw new Error('SQL catalog differs from source');console.log('100 definições sincronizadas.');}
 else {await writeFile(path,updated);console.log('Catálogo SQL sincronizado.');}

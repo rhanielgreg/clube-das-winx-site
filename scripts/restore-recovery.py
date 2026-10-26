@@ -10,6 +10,8 @@ import subprocess
 
 EXPECTED={'collector_locks','collector_runs','game_characters','game_players',
           'player_stat_snapshots','player_statistics_current','ranking_seasons','season_winners'}
+EXPANDED=EXPECTED|{'season_results','season_classification','life_identities','life_observations',
+                  'achievement_definitions','life_achievements','dashboard_rollout_state'}
 CONTAINER='winx-mission08-restore-20261025'
 
 def execute(sql, database='postgres'):
@@ -31,15 +33,16 @@ def grants(kind,target,entries):
                    (' WITH GRANT OPTION' if grant['grantable'] else '')+';')
     return sql
 
-def restore(source):
+def restore(source,database='postgres'):
     inspection=json.loads(subprocess.check_output(['docker','inspect',CONTAINER],text=True))[0]
     if inspection['Config']['Labels'].get('winx.mission')!='08' or inspection['HostConfig']['NetworkMode']!='none' or inspection['HostConfig']['PortBindings']:
         raise RuntimeError('Refusing target without disposable mission label, network isolation and no host ports')
     raw=Path(source).read_bytes();b=json.loads(raw)
-    if set(b['data'])!=EXPECTED or {t['name'] for t in b['tables']}!=EXPECTED or b['other_relations'] or b['memberships']:
+    names=set(b['data'])
+    if not EXPECTED<=names<=EXPANDED or {t['name'] for t in b['tables']}!=names or b['other_relations'] or b['memberships']:
         raise RuntimeError('Unexpected application scope; export requires manual review')
-    if any(t['policies'] or t['triggers'] or any(c['generated'] for c in t['columns']) for t in b['tables']):
-        raise RuntimeError('Unexpected policies, triggers or generated columns: extend restore before using')
+    if any(t['policies'] or any(c['generated'] for c in t['columns']) for t in b['tables']):
+        raise RuntimeError('Unexpected policies or generated columns: extend restore before using')
     sql=['BEGIN; SET check_function_bodies=off; SET standard_conforming_strings=on;',
          "DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public') THEN RAISE EXCEPTION 'target must be empty'; END IF; END $$;"]
     roles={g['role'] for t in b['tables'] for g in t['grants']}|{g['role'] for f in b['functions'] for g in f['grants']}
@@ -76,6 +79,8 @@ def restore(source):
     for f in b['functions']:
         sql.append(f['definition']+';')
         sql+=grants('FUNCTION','public.'+f['signature'],f['grants'])
+    for t in b['tables']:
+        sql+=[trigger+';' for trigger in t['triggers']]
     for seq in b['sequences']:
         target='public.'+ident(seq['sequencename'])
         sql.append(f'ALTER SEQUENCE {target} AS {seq["data_type"]} INCREMENT BY {seq["increment_by"]} MINVALUE {seq["min_value"]} MAXVALUE {seq["max_value"]} START WITH {seq["start_value"]} CACHE {seq["cache_size"]} '+('CYCLE;' if seq['cycle'] else 'NO CYCLE;'))
@@ -89,7 +94,7 @@ def restore(source):
             sql.append('ALTER DEFAULT PRIVILEGES FOR ROLE '+role(d['owner'])+' IN SCHEMA public GRANT '+g['privilege']+
                        ' ON '+kind+' TO '+role(g['role'])+(' WITH GRANT OPTION' if g['grantable'] else '')+';')
     sql.append('COMMIT;')
-    execute('\n'.join(sql))
+    execute('\n'.join(sql),database)
     checks=[]
     for t in b['tables']:
         name=t['name'];target='public.'+ident(name)
@@ -97,11 +102,14 @@ def restore(source):
         checks.append('SELECT '+literal(name)+" || ':' || (SELECT count(*) FROM "+target+") || ':' || (NOT EXISTS((SELECT to_jsonb(t) v FROM "+target+
                       ' t EXCEPT ALL SELECT value FROM jsonb_array_elements('+literal(expected)+'::jsonb)) UNION ALL (SELECT value FROM jsonb_array_elements('+literal(expected)+
                       '::jsonb) EXCEPT ALL SELECT to_jsonb(t) FROM '+target+' t)));')
-    checked=execute('\n'.join(checks))
+    checked=execute('\n'.join(checks),database)
     if ':false' in checked or ':f\n' in checked:raise RuntimeError('Restored row values differ')
     print(json.dumps({'container':CONTAINER,'network':'none','source_sha256':hashlib.sha256(raw).hexdigest(),
        'tables':{k:len(v) for k,v in b['data'].items()},'functions':len(b['functions']),
        'row_comparison':checked.strip(),'owner_runtime_limit':'container postgres is superuser; visitor/service attributes preserved'}))
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('source');args=parser.parse_args();restore(args.source)
+    parser=argparse.ArgumentParser();parser.add_argument('source');parser.add_argument('--database',default='postgres');args=parser.parse_args()
+    import re
+    if not re.fullmatch(r'postgres|winx_recovery_[a-z0-9_]+',args.database):raise SystemExit('Refusing unexpected local database name')
+    restore(args.source,args.database)

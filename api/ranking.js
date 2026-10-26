@@ -6,7 +6,7 @@ import { resolveDashboardContract, officialContractPending } from '../lib/champi
 
 function send(res, status, body) {
   res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.setHeader('cache-control', status === 200 ? 'public, s-maxage=120, stale-while-revalidate=300' : 'no-store');
+  res.setHeader('cache-control', status === 200 ? 'public, s-maxage=30, must-revalidate' : 'no-store');
   return res.status(status).json(body);
 }
 
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       seasons: seasonsResult.data ?? [],
       sync:sync?{...sync,...(contract.release?{latest_attempt_at:contract.release.latest_attempt_at,latest_attempt_status:contract.release.latest_attempt_status,
         collector_interval_seconds:contract.release.collector_interval_seconds,collector_cron_utc:contract.release.collector_cron_utc}: {})}:null,
-      stale: isStale(sync?.last_success_at)||['failed','running'].includes(sync?.latest_attempt_status),
+      stale: isStale(sync?.last_success_at)||['failed','running'].includes(contract.release?.latest_attempt_status||sync?.latest_attempt_status),
       message: ranking.length
         ? null
         : 'Aguardando estatísticas validadas do servidor para abrir a disputa.',

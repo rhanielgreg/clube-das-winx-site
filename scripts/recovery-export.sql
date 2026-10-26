@@ -1,5 +1,6 @@
 -- Export lógico SOMENTE LEITURA do domínio public da aplicação.
--- Salvar o resultado fora do Git, com ACL local restrita. Não é backup de auth/storage.
+-- Versão pós-migrações 001–007. Salvar fora do Git com ACL local restrita.
+-- Não é backup de auth/storage. O commit inicial da 08 contém o export pré-expansão.
 begin isolation level repeatable read read only;
 select jsonb_build_object(
  'exported_at',now(),'server_version',current_setting('server_version'),
@@ -52,6 +53,13 @@ select jsonb_build_object(
   'player_stat_snapshots',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from public.player_stat_snapshots t),
   'season_winners',(select coalesce(jsonb_agg(to_jsonb(t) order by season_id),'[]') from public.season_winners t),
   'collector_runs',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from public.collector_runs t),
-  'collector_locks',(select coalesce(jsonb_agg(to_jsonb(t) order by lock_name),'[]') from public.collector_locks t)
+  'collector_locks',(select coalesce(jsonb_agg(to_jsonb(t) order by lock_name),'[]') from public.collector_locks t),
+  'season_results',(select coalesce(jsonb_agg(to_jsonb(t) order by season_id),'[]') from public.season_results t),
+  'season_classification',(select coalesce(jsonb_agg(to_jsonb(t) order by season_id,profile_id),'[]') from public.season_classification t),
+  'life_identities',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from public.life_identities t),
+  'life_observations',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from public.life_observations t),
+  'achievement_definitions',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from public.achievement_definitions t),
+  'life_achievements',(select coalesce(jsonb_agg(to_jsonb(t) order by life_id,achievement_id),'[]') from public.life_achievements t),
+  'dashboard_rollout_state',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from public.dashboard_rollout_state t)
  ))::text as recovery_export;
 commit;

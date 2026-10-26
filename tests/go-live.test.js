@@ -17,7 +17,11 @@ test('marcador público confirma revisão sem divulgar configurações ou aceita
 test('contador usa cron e tentativa reais; chegar a zero não reinicia nem simula conclusão',()=>{
  const at=Date.parse('2026-10-25T18:05:12Z');
  const sync={collector_interval_seconds:300,collector_cron_utc:'*/5 * * * *',latest_attempt_at:new Date(at).toISOString(),latest_attempt_status:'success'};
- assert.equal(collectionCountdown(sync,Date.parse('2026-10-25T18:09:50Z')),'Próxima janela de coleta em 10s');
+ assert.equal(collectionCountdown(sync,Date.parse('2026-10-25T18:09:50Z')),'Próxima coleta prevista em 00:10');
+ const onSchedule={...sync,latest_attempt_at:'2026-10-25T18:05:00Z'};
+ assert.equal(collectionCountdown(onSchedule,Date.parse('2026-10-25T18:05:01Z')),'Próxima coleta prevista em 04:59');
+ assert.equal(collectionCountdown(onSchedule,Date.parse('2026-10-25T18:05:02Z')),'Próxima coleta prevista em 04:58');
+ assert.equal(collectionCountdown(sync,Date.parse('2026-10-25T18:07:35Z')),'Próxima coleta prevista em 02:25');
  assert.equal(collectionCountdown(sync,Date.parse('2026-10-25T18:10:00Z')),'Aguardando confirmação da próxima coleta');
  assert.equal(collectionCountdown(sync,Date.parse('2026-10-25T18:15:00Z')),'Aguardando confirmação da próxima coleta');
  assert.equal(collectionCountdown({...sync,latest_attempt_status:'running'},at+1000),'Coleta em andamento');

@@ -203,7 +203,7 @@ function renderMemorial() {
   grid.innerHTML = rows.length ? rows.map((row) => {
     const observed = memorialDate(row);
     const identified = typeof row.profile_id === 'string' && UUID.test(row.profile_id);
-    return `<article class="memorial-card"><div class="memorial-card-top"><div class="memorial-stone" aria-hidden="true"><span>✦</span><b>EM MEMÓRIA</b><small>${identified ? safe(row.profile_id.slice(-6).toUpperCase()) : 'SEM ID'}</small></div></div><div class="memorial-card-body"><small>REGISTRO PRESERVADO · MORTO</small><h3>${safe(row.character_name || 'Nome não informado')}</h3><p class="memorial-account">Jogador / ${safe(row.steam_username || 'Não informado')}</p><div class="memorial-numbers"><div><b>${formatNumber(row.kills_total)}</b><small>KILLS / ${safe(row.season_name || 'TEMPORADA NÃO INFORMADA')}</small></div><div><b>${formatDuration(row.survival_seconds)}</b><small>TEMPO JOGADO REGISTRADO</small></div></div><div class="memorial-foot"><span class="memorial-date"><small>${observed.label}</small><time>${safe(date(observed.value, false))}</time></span>${identified ? `<a href="${profileLink(row)}">Ver dossiê ↗</a>` : '<span>Dossiê indisponível</span>'}</div><p class="identity-note">${identified ? `Registro ${safe(row.profile_id.slice(-8))}` : 'Identificador não informado'} · vida individual ainda não validada</p>${isDemo ? '<span class="memorial-demo">PERSONAGEM E ESTATÍSTICAS FICTÍCIOS</span>' : ''}</div></article>`;
+    return `<article class="memorial-card"><div class="memorial-card-top"><div class="memorial-stone" aria-hidden="true"><span>✦</span><b>EM MEMÓRIA</b><small>${identified ? safe(row.profile_id.slice(-6).toUpperCase()) : 'SEM ID'}</small></div></div><div class="memorial-card-body"><small>REGISTRO PRESERVADO · MORTO</small><h3>${safe(row.character_name || 'Nome não informado')}</h3><p class="memorial-account">Jogador / ${safe(row.steam_username || 'Não informado')}</p><div class="memorial-numbers"><div><b>${formatNumber(row.kills_total)}</b><small>KILLS / ${safe(row.season_name || 'TEMPORADA NÃO INFORMADA')}</small></div><div><b>${formatDuration(row.survival_seconds)}</b><small>TEMPO JOGADO REGISTRADO</small></div></div><div class="memorial-foot"><span class="memorial-date"><small>${observed.label}</small><time>${safe(date(observed.value, false))}</time></span>${identified ? `<a href="${profileLink(row)}">Ver dossiê ↗</a>` : '<span>Dossiê indisponível</span>'}</div><p class="identity-note">${identified ? `Registro ${safe(row.profile_id.slice(-8))}` : 'Identificador não informado'} · ${row.life_identity_verified === true ? "vida identificada pela origem" : "vida individual ainda não validada"}</p>${isDemo ? '<span class="memorial-demo">PERSONAGEM E ESTATÍSTICAS FICTÍCIOS</span>' : ''}</div></article>`;
   }).join('')
     : '<p class="error-box">Nenhum registro de personagem morto encontrado para esta consulta.</p>';
   decorateLinks();
@@ -216,8 +216,11 @@ function renderSurvivors() {
   grid.innerHTML = rows.length ? rows.map((row) => `<a class="survivor-card dossier-shortcut" href="${profileLink(row)}"><img ${avatarAttributes(row)} alt="" loading="lazy"><div><small>DOSSIÊ INDIVIDUAL</small><h3>${safe(row.character_name)}</h3><p>Combate · tempo jogado · evolução</p></div><span aria-hidden="true">↗</span></a>`).join('') : '<p class="page-intro">Nenhum personagem vivo classificado disponível nesta consulta.</p>';
 }
 
+let rankingLoading = false;
 async function loadRanking() {
   if (!$('[data-ranking-list]') && !$('[data-ranking-body]') && !$('[data-memorial-grid]')) return;
+  if (rankingLoading) return;
+  rankingLoading = true;
   try {
     const payload = await request('/api/ranking');
     if (!Array.isArray(payload.ranking) || !Array.isArray(payload.seasons)) throw new Error('Resposta de classificação inválida.');
@@ -254,7 +257,7 @@ async function loadRanking() {
     if ($('[data-memorial-grid]')) $('[data-memorial-grid]').innerHTML = `<p class="error-box">${safe(error.message)}</p>`;
     setText('[data-season-name]', 'Consulta indisponível'); setText('[data-season-state]', 'Tente novamente');
     if ($('[data-season-history]')) $('[data-season-history]').innerHTML = '<p class="error-box">Temporadas indisponíveis nesta consulta.</p>';
-  }
+  } finally { rankingLoading = false; }
 }
 
 function renderPlayer(payload) {
@@ -286,7 +289,7 @@ function renderPlayer(payload) {
     <div class="profile-badges">${stateBadge(profile.alive)}${badge ? `<span class="profile-badge">✦ ${badge}</span>` : ''}${payload.demo ? '<span class="profile-badge">Demonstração · personagem fictício</span>' : ''}</div>
     ${Array.isArray(payload.titles) && payload.titles.length ? `<section class="official-titles" aria-label="Títulos preservados"><h2>TÍTULOS PRESERVADOS</h2>${payload.titles.map(title => `<p><b>${safe(title.season_name)}</b> · ${safe(title.rules_version === 'winx-v1' ? 'Campeão oficial' : 'Campeão registrado nas regras anteriores')} · ${formatNumber(title.final_kills_total)} kills · ${safe(date(title.ended_at, false))}</p>`).join('')}<small>Conquistas de temporadas encerradas não dependem do estado de vida atual.</small></section>` : ''}
     ${payload.demo && payload.future_metrics_demo ? '<p class="sync-warning">SIMULAÇÃO DE MÉTRICAS FUTURAS · Valores inteiramente fictícios para revisar a apresentação. Não extraídos do servidor.</p>' : ''}
-    ${lifeMetrics ? `<p class="dossier-note">Pontuação na temporada exibida: <b>${formatNumber(profile.kills_total)} kills</b>. Os contadores abaixo pertencem à vida verificada.</p>` : ''}
+    ${lifeMetrics ? `<p class="dossier-note">Pontuação na temporada exibida: <b>${formatNumber(profile.kills_total)} kills</b>. Os contadores abaixo foram observados nesta vida. A cobertura desde o nascimento não foi comprovada.</p>` : ''}
     ${lifeMetrics && payload.achievements.season_history?.length ? `<details class="history-panel"><summary class="text-link">Participação e marcas em temporadas encerradas</summary><p class="dossier-note">Melhor pontuação oficial desta vida: ${formatNumber(payload.achievements.season_records?.best_season_kills_total)} kills. Arquivo congelado no encerramento.</p><div class="table-scroll"><table class="ranking-table"><thead><tr><th>Temporada</th><th>Posição final</th><th>Kills válidas</th><th>Estado ao encerrar</th></tr></thead><tbody>${payload.achievements.season_history.map(row=>`<tr><td>${safe(row.season_name)}</td><td>${row.rank_position ? '#'+formatNumber(row.rank_position) : 'Sem classificação'}</td><td>${formatNumber(row.kills_total)}</td><td>${row.alive_at_close ? 'Vivo' : 'Morto'}${row.outcome==='apocalypse' ? ' · O Apocalipse Venceu' : ''}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
     <div data-achievements-root>${achievementPanel(payload.achievements,achievementCategory)}</div>
     ${payload.demo && payload.achievements_engine_demo ? '<p class="sync-warning">MOTOR POSTGRESQL LOCAL · Vida e dados fictícios. Desbloqueios calculados pelo SQL, sem conexão com produção.</p>' : ''}
@@ -375,3 +378,6 @@ request('/api/config').catch(() => {});
 decorateLinks();
 refreshAll();
 setInterval(() => { if (!document.hidden) refreshAll(); }, 120000);
+// Somente a classificação: no máximo duas consultas por minuto em página visível.
+// O contador por segundo é local; uma previsão vencida nunca confirma ingestão.
+setInterval(() => { if (!document.hidden && !refreshing) loadRanking(); }, 30000);

@@ -42,6 +42,26 @@ test('perfil consulta histórico da temporada selecionada e tolera falha isolada
     check: async (calls) => { const res=response(); await player({method:'GET',query:{id:profileId}},res); assert.equal(res.code,200); assert.equal(res.body.profile.alive,false); assert.equal(res.body.history_state,'unavailable'); assert.equal(calls.length,3); },
   });
 });
+
+test('ranking informa tentativa falha do marcador mesmo com último sucesso legado recente', async (t) => {
+  const now = new Date().toISOString();
+  await isolated(t, {
+    mock: async (url) => {
+      if (url.endsWith('get_public_dashboard_release_v1')) return Response.json({ competition_rules_version:'winx-v1', life_contract_version:null, server_time:now,
+        latest_attempt_at:now, latest_attempt_status:'failed', collector_interval_seconds:300, collector_cron_utc:'*/5 * * * *' });
+      if (url.endsWith('get_public_ranking_status')) return Response.json([{last_success_at:now}]);
+      return Response.json([]);
+    },
+    check: async () => {
+      delete process.env.COMPETITION_RULES_VERSION;
+      const res=response(); await ranking({method:'GET'},res);
+      assert.equal(res.code,200); assert.equal(res.body.stale,true);
+      assert.equal(res.body.sync.latest_attempt_status,'failed');
+      assert.equal(res.body.sync.last_success_at,now);
+      assert.equal(res.headers['cache-control'],'public, s-maxage=30, must-revalidate');
+    },
+  });
+});
 test('perfil inválido e método incorreto são rejeitados sem rede', async (t) => {
   await isolated(t, { mock: async () => { throw new Error('Rede não deveria ser chamada'); }, check: async (calls) => {
     const invalid=response(); await player({method:'GET',query:{id:'-'.repeat(36)}},invalid); assert.equal(invalid.code,400); assert.equal(invalid.headers['cache-control'],'no-store');
