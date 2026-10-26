@@ -4,9 +4,9 @@ Portal gamer hospedável na Vercel, com status real A2S, comandos Discord via In
 
 Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway é mantido separadamente em [clube-das-winx-collector](https://github.com/rhanielgreg/clube-das-winx-collector). A pasta local `collector/` não faz parte deste repositório.
 
-## Missão 11 — correções de temporada e ranking
+## Missão 11 — publicada e validada
 
-Prazo oficial corrigido no banco para **31/10/2026 às 23h59 de Brasília**, com início preservado e encerramento manual. Relógio absoluto/F5/cache, tabela responsiva, MVP estável e posições por filtro corrigidos; Vivos removido. Tratamento seguro do bootstrap administrativo, sem alterar senhas ou permissões. Testes atuais: 108/108 em Node 22 e 108/108 em Node 24. Estado da publicação e configuração administrativa pendente no [checkpoint](docs/MASTER07-CHECKPOINT.md).
+Versão funcional `5381689` publicada no [domínio original](https://clubedaswinx-delta.vercel.app/ranking), confirmada por `/api/release` (`mission11`). Prazo oficial corrigido no banco para **31/10/2026 às 23h59 de Brasília**, com início preservado e encerramento manual. Relógio absoluto/F5/cache, tabela responsiva, MVP estável e posições por filtro corrigidos; Vivos removido. Tratamento seguro do bootstrap administrativo, sem alterar senhas ou permissões. Testes atuais: 108/108 em Node 22 e 108/108 em Node 24. A configuração `ADMIN_EMAIL` falta no ambiente produtivo; o login permanece bloqueado com mensagem clara, sem cliente nulo ou ampliação de acesso. Evidências e ação do proprietário no [checkpoint](docs/MASTER07-CHECKPOINT.md).
 
 ## Missão 10 — publicada e validada
 
