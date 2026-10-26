@@ -43,7 +43,7 @@ export function createPreviewServer({rankingFactory=demoRanking}={}) {
           }
           return json(200, demoStatus(url.searchParams.get('scenario')));
         }
-        if (url.pathname === '/api/admin') { const data = demoRanking(); return json(200, { ...data, activeSeason: data.seasons[0], admin: { email: 'Demonstração local', hasServiceKey: false } }); }
+        if (url.pathname === '/api/admin') { const data = rankingFactory(url.searchParams.get('scenario')); return json(200, { ...data, activeSeason: data.seasons[0], admin: { email: 'Demonstração local', hasServiceKey: false } }); }
         if (url.pathname === '/api/connect') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end('<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/styles.css"><main class="page-main"><p class="eyebrow">DEMONSTRAÇÃO LOCAL</p><h1>Nenhuma conexão real.</h1><p>Os botões de conexão foram preservados. Esta prévia não abre o servidor Zomboid.</p><a class="button button-pink" href="/index.html">Voltar ao dashboard</a></main></html>'); }
         return json(404, { error: 'API indisponível nesta prévia.' });
       }

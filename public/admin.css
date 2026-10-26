@@ -341,6 +341,7 @@ body.admin-body {
 }
 
 .admin-left-col, .admin-right-col {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -403,6 +404,7 @@ body.admin-body {
 
 .season-meta-chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   font-size: 10px;
   color: #8c7e87;
@@ -611,6 +613,8 @@ body.admin-body {
 }
 
 @media (max-width: 600px) {
+  .admin-panel .panel-header { flex-wrap: wrap; gap: 12px; }
+  .admin-panel .panel-header>div { max-width: 100%; flex-wrap: wrap; }
   .kpi-grid {
     grid-template-columns: 1fr;
   }

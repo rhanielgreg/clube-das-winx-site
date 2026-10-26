@@ -7,7 +7,7 @@ import { withSeasonSchedule } from '../lib/season-schedule.js';
 
 function send(res, status, body) {
   res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.setHeader('cache-control', status === 200 ? 'public, s-maxage=30, must-revalidate' : 'no-store');
+  res.setHeader('cache-control', status === 200 ? 'no-store, max-age=0' : 'no-store');
   return res.status(status).json(body);
 }
 
@@ -49,6 +49,7 @@ export default async function handler(req, res) {
     await Promise.all([enrichRankingWithAvatars(ranking), enrichRankingWithAvatars(graveyard)]);
 
     const sync = Array.isArray(syncResult.data) ? syncResult.data[0] ?? null : syncResult.data;
+    const seasons=await withSeasonSchedule(seasonsResult.data ?? [],process.env,contract.release);
     return send(res, 200, {
       configured: true,
       competition_rules: OFFICIAL_RULES,
@@ -59,15 +60,15 @@ export default async function handler(req, res) {
       graveyard_state: Array.isArray(graveyardResult.data) ? 'ready' : 'unavailable',
       time_metric: 'played_seconds',
       life_identity_verified: lifeEnabled&&ranking.length>0&&ranking.every(row=>row.life_identity_verified===true),
-      server_time:contract.release?.server_time||new Date().toISOString(),
       cohort_started_at:contract.release?.cohort_started_at||null,
-      seasons: await withSeasonSchedule(seasonsResult.data ?? [],process.env,contract.release),
+      seasons,
       sync:sync?{...sync,...(contract.release?{latest_attempt_at:contract.release.latest_attempt_at,latest_attempt_status:contract.release.latest_attempt_status,
         collector_interval_seconds:contract.release.collector_interval_seconds,collector_cron_utc:contract.release.collector_cron_utc}: {})}:null,
       stale: isStale(sync?.last_success_at)||['failed','running'].includes(contract.release?.latest_attempt_status||sync?.latest_attempt_status),
       message: ranking.length
         ? null
         : 'Aguardando estatísticas validadas do servidor para abrir a disputa.',
+      server_time:new Date().toISOString(),
     });
   } catch (error) {
     console.error('Falha ao carregar ranking:', error);

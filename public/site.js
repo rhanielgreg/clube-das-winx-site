@@ -1,5 +1,6 @@
+import { rankingClock, clockNow } from './ranking-clock.js';
 import { collectionCountdown } from './collection-countdown.js';
-import { formatNumber, formatDuration, hasNumber, lifeState, escapeHtml as safe, filterRanking } from './contracts.js';
+import { formatNumber, formatDuration, hasNumber, lifeState, escapeHtml as safe, filterRanking, normalizeRankingFilter } from './contracts.js';
 import { memorialDate } from './presentation.js';
 import { characterAvatar } from './avatar.js';
 import { livingRanking, seasonResult } from './championship.js';
@@ -10,7 +11,7 @@ import { statusState } from './status-view.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const filters = { filter: 'kills', search: '' };
+const filters = { filter: normalizeRankingFilter(new URLSearchParams(location.search).get('filter')), search: '' };
 let rankingPayload = null;
 let memorialSearch = '';
 let isDemo = false;
@@ -64,12 +65,9 @@ function showPublicPreview() {
 async function request(path) {
   const url = new URL(path, location.origin);
   if (['offline', 'empty', 'stale', 'no-champion', 'server-offline', 'server-unknown', 'advanced', 'achievements'].includes(scenario)) url.searchParams.set('scenario', scenario);
-  const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const response = await fetch(url, { signal: AbortSignal.timeout(15000), ...(url.pathname==='/api/ranking'?{cache:'no-store'}:{}) });
   const data = await response.json();
-  if(url.pathname==='/api/ranking'&&Number.isFinite(Date.parse(data.server_time||''))){
-    const age=Number(response.headers.get('age')||0);
-    data.collection_clock={server:Date.parse(data.server_time)+(Number.isFinite(age)&&age>=0?age*1000:0),received:performance.now()};
-  }
+  if(url.pathname==='/api/ranking')data.collection_clock=rankingClock(data,response.headers,performance.now(),rankingPayload?.collection_clock);
   if(url.pathname==='/api/status') {
     const server=Date.parse(data.serverTime||response.headers.get('date')||data.checkedAt||'');
     data.status_clock={server,received:performance.now()};
@@ -184,12 +182,12 @@ function updateLeader(row, unavailable = false) {
   $$('[data-leader-profile]').forEach((link) => { link.href = row ? publicDestination(row) : '/ranking'; link.setAttribute('aria-disabled', String(!row)); });
 }
 
-function rankingRow(row, showDistance = false) {
-  const position = hasNumber(row.rank_position) ? row.rank_position : '—';
+function rankingRow(row, showDistance = false, visualPosition = null) {
+  const position = visualPosition;
   const observed = memorialDate(row);
-  return `<tr><td><span class="rank-no ${Number(position) <= 3 ? 'top' : ''}">${safe(position === '—' ? position : String(position).padStart(2, '0'))}</span></td>
-    <td><div class="player-cell"><img class="player-avatar" ${avatarAttributes(row)} alt="" loading="lazy"><span><strong class="player-name">${safe(row.character_name || 'Nome não informado')}</strong><small>Jogador / ${safe(row.steam_username || 'Não informado')}</small></span></div></td>
-    <td><b>${formatNumber(row.kills_total)}</b></td><td>${formatNumber(row.kills_firearm)}</td><td>${formatNumber(row.kills_melee)}</td><td>${formatDuration(row.survival_seconds)}</td>${showDistance ? `<td>${row.life_identity_verified === true && row.distance_unit === "meters" && hasNumber(row.distance_total_m) ? `${formatNumber(Number(row.distance_total_m)/1000)} km` : "—"}</td>` : ""}<td>${stateBadge(row.alive)}</td><td class="record-date"><small>${observed.label}</small><time>${safe(date(observed.value))}</time></td></tr>`;
+  return `<tr><td class="col-position" data-label="Ordem"><span class="rank-no ${row.alive===true&&Number(position) <= 3 ? 'top' : ''}">${safe(position === '—' ? position : String(position).padStart(2, '0'))}</span></td>
+    <td class="col-player" data-label="Sobrevivente / jogador"><div class="player-cell"><img class="player-avatar" ${avatarAttributes(row)} alt="" loading="lazy"><span><strong class="player-name">${safe(row.character_name || 'Nome não informado')}</strong><small>Jogador / ${safe(row.steam_username || 'Não informado')}</small></span></div></td>
+    <td class="col-kills" data-label="Kills"><b>${formatNumber(row.kills_total)}</b></td><td class="col-firearm" data-label="Arma">${formatNumber(row.kills_firearm)}</td><td class="col-melee" data-label="Corpo a corpo">${formatNumber(row.kills_melee)}</td><td class="col-time" data-label="Tempo jogado">${formatDuration(row.survival_seconds)}</td>${showDistance ? `<td class="col-distance" data-label="Distância">${row.life_identity_verified === true && row.distance_unit === "meters" && hasNumber(row.distance_total_m) ? `${formatNumber(Number(row.distance_total_m)/1000)} km` : "—"}</td>` : ""}<td class="col-state" data-label="Estado">${stateBadge(row.alive)}</td><td class="record-date col-record" data-label="Registro"><small>${observed.label}</small><time>${safe(date(observed.value))}</time></td></tr>`;
 }
 
 function renderTable() {
@@ -197,11 +195,12 @@ function renderTable() {
   if (!body || !rankingPayload) return;
   const unavailable = filters.filter === 'dead' && rankingPayload.graveyard_state !== 'ready';
   const rows = filterRanking(rankingPayload.ranking || [], rankingPayload.graveyard || [], filters);
+  setText('[data-ranking-position-heading]',filters.filter==='dead'?'Ordem':'Pos.');
   const hasDistance = rows.some(row=>row.life_identity_verified === true && row.distance_unit === 'meters' && hasNumber(row.distance_total_m));
   const distanceHeading = $('[data-distance-heading]'); if (distanceHeading) distanceHeading.hidden=!hasDistance;
   body.closest('.ranking-board')?.classList.toggle('has-distance',hasDistance);
   body.innerHTML = unavailable ? '<tr><td colspan="8" class="table-empty">O cemitério não pôde ser consultado. A integração SQL v2 pode estar pendente. Nenhuma morte foi inferida.</td></tr>'
-    : rows.length ? rows.map(row=>rankingRow(row,hasDistance)).join('')
+    : rows.length ? rows.map((row,index)=>rankingRow(row,hasDistance,index+1)).join('')
       : `<tr><td colspan="8" class="table-empty">${safe(rankingPayload.message || 'Nenhum registro para os critérios selecionados.')}</td></tr>`;
   $$('[data-filter]').forEach((button) => { const active = filters.filter === button.dataset.filter; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active)); });
   decorateLinks();
@@ -255,7 +254,7 @@ async function loadRanking() {
     if (side) side.innerHTML = payload.ranking.slice(1, 5).map((row) => `<li><span class="place">${safe(String(row.rank_position).padStart(2, '0'))}</span><img class="player-avatar" ${avatarAttributes(row)} alt="" loading="lazy"><a class="player-meta" href="${publicDestination(row)}"><strong>${safe(row.character_name)}</strong><small>${safe(row.steam_username)} · ${lifeState(row.alive).label}</small></a><span class="kill-count">${formatNumber(row.kills_total)}<small>KILLS</small></span></li>`).join('') || '<li class="skeleton">Nenhum outro classificado nesta temporada.</li>';
     const season = payload.seasons.find((entry) => entry.status === 'active');
     setText('[data-season-name]', season?.name || 'Nenhuma temporada ativa');
-    setText('[data-season-state]', season ? 'Disputa em andamento' : 'Aguardando próxima temporada');
+    setText('[data-season-state]', season ? 'Disputa em andamento' : payload.seasons.some(row=>row.status==='closed')?'Temporada encerrada':'Aguardando próxima temporada');
     const deadline=$('[data-season-deadline]');if(deadline){const label=seasonDeadline(season);deadline.hidden=!label;deadline.textContent=label||'';if(label)deadline.dateTime=season.scheduled_end_at;else deadline.removeAttribute('datetime');}
     setText('[data-ranking-sync]', payload.sync?.last_success_at ? `${payload.demo ? 'Leitura fictícia' : 'Última coleta'} / ${date(payload.sync.last_success_at)}` : 'Coleta ainda não sincronizada');
     setText('[data-ranking-refreshed]', `Dados recebidos pela página / ${date(new Date().toISOString())}`);
@@ -289,12 +288,12 @@ function updateSeasonCountdown(){
  const node=$('[data-season-countdown]');if(!node)return;
  const season=rankingPayload?.seasons?.find(row=>row.status==='active');
  const clock=rankingPayload?.collection_clock;
- const text=seasonCountdown(season,clock?clock.server+performance.now()-clock.received:NaN);
+ const text=seasonCountdown(season,clockNow(clock,performance.now()));
  node.hidden=!text;node.textContent=text||'';
 }
 function updateCollectionCountdown(){
  const clock=rankingPayload?.collection_clock;
- setText('[data-collection-countdown]',collectionCountdown(rankingPayload?.sync,clock?clock.server+performance.now()-clock.received:NaN));
+ setText('[data-collection-countdown]',collectionCountdown(rankingPayload?.sync,clockNow(clock,performance.now())));
 }
 setInterval(()=>{updateCollectionCountdown();updateSeasonCountdown();if(statusPayload)updateStatusState();},1000);
 let refreshing = false;
@@ -320,7 +319,7 @@ async function refreshAll(manual = false) {
 mountFooter();
 setupNavigation();
 $$('[data-year]').forEach((node) => { node.textContent = new Date().getFullYear(); });
-$$('[data-filter]').forEach((button) => { button.onclick = () => { filters.filter = button.dataset.filter; renderTable(); }; });
+$$('[data-filter]').forEach((button) => { button.onclick = () => { filters.filter = normalizeRankingFilter(button.dataset.filter); renderTable(); }; });
 if ($('[data-ranking-search]')) $('[data-ranking-search]').oninput = (event) => { filters.search = event.target.value; renderTable(); };
 if ($('[data-memorial-search]')) $('[data-memorial-search]').oninput = (event) => { memorialSearch = event.target.value; renderMemorial(); };
 $$('[data-refresh]').forEach((button) => { button.onclick = () => refreshAll(true); });

@@ -52,7 +52,7 @@
             <label for="admin-password-input">SENHA</label>
             <input type="password" id="admin-password-input" name="password" required autocomplete="current-password" placeholder="••••••••••••">
           </div>
-          <button type="submit" class="button button-pink auth-submit" data-pwd-login-btn>
+          <button type="submit" class="button button-pink auth-submit" data-pwd-login-btn disabled>
             <span class="button-scan"></span>
             ENTRAR COM SENHA ➔
           </button>
@@ -64,7 +64,7 @@
             <label for="admin-email-magic">E-MAIL DO ADMINISTRADOR</label>
             <input type="email" id="admin-email-magic" name="email" required autocomplete="email" placeholder="seu-email@dominio.com">
           </div>
-          <button type="submit" class="button button-pink auth-submit" data-magic-login-btn>
+          <button type="submit" class="button button-pink auth-submit" data-magic-login-btn disabled>
             <span class="button-scan"></span>
             ENVIAR LINK MÁGICO ↗
           </button>
@@ -130,6 +130,8 @@
                 <div class="season-meta-chips">
                   <span>ID: <code data-season-id>—</code></span>
                   <span>Início: <strong data-season-start>—</strong></span>
+                  <span><strong data-season-end>Prazo não confirmado</strong></span>
+                  <span data-season-closure>—</span>
                 </div>
               </div>
 

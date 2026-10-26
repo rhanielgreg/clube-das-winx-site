@@ -58,7 +58,7 @@ test('ranking informa tentativa falha do marcador mesmo com último sucesso lega
       assert.equal(res.code,200); assert.equal(res.body.stale,true);
       assert.equal(res.body.sync.latest_attempt_status,'failed');
       assert.equal(res.body.sync.last_success_at,now);
-      assert.equal(res.headers['cache-control'],'public, s-maxage=30, must-revalidate');
+      assert.equal(res.headers['cache-control'],'no-store, max-age=0');
     },
   });
 });
@@ -93,7 +93,7 @@ test('admin sem sessão é rejeitado sem rede e configuração nunca expõe serv
   await isolated(t, { mock: async () => { throw new Error('Rede não deveria ser chamada'); }, check: async (calls) => {
     const denied=response(); await admin({method:'GET',headers:{}},denied); assert.equal(denied.code,403); assert.equal(calls.length,0);
     process.env.SUPABASE_PUBLISHABLE_KEY='sb_secret_wrong_configuration';
-    const res=response(); config({method:'GET'},res); assert.deepEqual(res.body,{admin_enabled:false});
+    const res=response(); config({method:'GET'},res); assert.equal(res.body.admin_enabled,false);assert.ok(res.body.configuration_issues.includes('SUPABASE_PUBLISHABLE_KEY_OR_ANON_KEY'));
     assert.ok(!JSON.stringify(res.body).includes('sb_secret'));
   }});
 });

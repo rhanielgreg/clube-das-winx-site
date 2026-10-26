@@ -1,3 +1,5 @@
+import { AUTH_UNAVAILABLE, requireAdminAuth, createAdminAuthClient } from './admin-auth.js';
+import { seasonDeadline } from './season-schedule.js';
 import { mountFooter } from './footer.js';
 mountFooter();
 import { seasonResult } from './championship.js';
@@ -34,19 +36,25 @@ async function initSupabase() {
   if (!response.ok) throw new Error('Configuração administrativa indisponível.');
   const config = await response.json();
   if (config.demo || !config.admin_enabled) return config;
-  // O SDK de autenticação só é carregado quando há configuração explícita.
-  if (!window.supabase) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.js';
-      script.onload = resolve; script.onerror = () => reject(new Error('SDK de autenticação indisponível.'));
-      document.head.append(script);
-    });
-  }
-  supabaseClient = window.supabase.createClient(config.supabase_url, config.supabase_public_key, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  // Não solicita SDK/credenciais enquanto a configuração pública estiver incompleta.
+  supabaseClient=await createAdminAuthClient(config,async()=>{
+    if(!window.supabase) {
+      await new Promise((resolve,reject)=>{
+        const script=document.createElement('script');
+        const timer=setTimeout(()=>reject(new Error('SDK de autenticação indisponível. Tente novamente mais tarde.')),10000);
+        script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.js';
+        script.onload=()=>{clearTimeout(timer);resolve();};
+        script.onerror=()=>{clearTimeout(timer);reject(new Error('SDK de autenticação indisponível. Tente novamente mais tarde.'));};
+        document.head.append(script);
+      });
+    }
+    return window.supabase;
   });
   return config;
+}
+
+function setAuthControls(enabled) {
+  $$('[data-pwd-login-btn], [data-magic-login-btn]').forEach(button=>{button.disabled=!enabled;});
 }
 
 async function requestAdminApi(action, payload = {}) {
@@ -122,6 +130,8 @@ function renderDashboard(data) {
     $('[data-season-reward]').textContent = activeSeason.reward_message || 'Sem recompensa descrita.';
     $('[data-season-id]').textContent = activeSeason.season_id;
     $('[data-season-start]').textContent = formatDate(activeSeason.started_at);
+    $('[data-season-end]').textContent = seasonDeadline(activeSeason)||'Prazo não confirmado';
+    $('[data-season-closure]').textContent = activeSeason.closure_mode==='manual'?'Encerramento manual':'Forma de encerramento não confirmada';
   } else {
     activeContent.style.display = 'none';
     noSeasonContent.style.display = 'block';
@@ -210,7 +220,7 @@ function setupAuthHandlers() {
       feedback.style.display = 'none';
 
       try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
+        const { data, error } = await requireAdminAuth(supabaseClient).signInWithPassword({
           email,
           password,
         });
@@ -229,7 +239,7 @@ function setupAuthHandlers() {
         feedback.textContent = err.message || 'Credenciais inválidas. Verifique seu e-mail e senha no Supabase.';
         feedback.style.display = 'block';
       } finally {
-        pwdBtn.disabled = false;
+        pwdBtn.disabled = !supabaseClient?.auth;
         pwdBtn.textContent = 'ENTRAR COM SENHA ➔';
       }
     });
@@ -247,10 +257,11 @@ function setupAuthHandlers() {
       feedback.style.display = 'none';
 
       try {
-        const { error } = await supabaseClient.auth.signInWithOtp({
+        const { error } = await requireAdminAuth(supabaseClient).signInWithOtp({
           email,
           options: {
             emailRedirectTo: window.location.origin + '/admin',
+            shouldCreateUser: false,
           },
         });
 
@@ -264,7 +275,7 @@ function setupAuthHandlers() {
         feedback.textContent = err.message || 'Falha ao enviar e-mail com link mágico.';
         feedback.style.display = 'block';
       } finally {
-        magicBtn.disabled = false;
+        magicBtn.disabled = !supabaseClient?.auth;
         magicBtn.textContent = 'ENVIAR LINK MÁGICO ↗';
       }
     });
@@ -273,7 +284,8 @@ function setupAuthHandlers() {
   const logoutBtn = $('[data-action-logout]');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
+      if(!supabaseClient?.auth)return;
+      await requireAdminAuth(supabaseClient).signOut();
       window.location.reload();
     });
   }
@@ -447,10 +459,12 @@ function parseHashParams() {
 }
 
 async function main() {
-  const publicConfig = await initSupabase();
-  demoMode = publicConfig.demo === true;
+  // Captura submit antes de qualquer await; falhas de bootstrap não enviam formulários nativos.
   setupAuthHandlers();
   setupDashboardActions();
+  setAuthControls(false);
+  const publicConfig = await initSupabase();
+  demoMode = publicConfig.demo === true;
 
   const resetButton = $('[data-action-reset-baseline]');
   if (resetButton) { resetButton.disabled = true; resetButton.title = 'Reset bloqueado até revisão transacional e autorização específica.'; }
@@ -469,10 +483,13 @@ async function main() {
   }
   if (!supabaseClient) {
     const feedback = $('[data-auth-feedback]');
-    feedback.textContent = 'Autenticação não configurada neste ambiente.';
+    setAuthControls(false);
+    feedback.textContent = AUTH_UNAVAILABLE;
     feedback.style.display = 'block';
     return;
   }
+
+  setAuthControls(true);
 
   // Trata tokens que chegam no hash da URL (Magic Link redirecionado)
   const hashTokens = parseHashParams();
@@ -532,4 +549,4 @@ async function main() {
   });
 }
 
-main().catch((error) => { const feedback = $('[data-auth-feedback]'); if (feedback) { feedback.textContent = error.message; feedback.style.display = 'block'; } });
+main().catch((error) => { setAuthControls(false); const feedback = $('[data-auth-feedback]'); if (feedback) { feedback.textContent = error.message; feedback.style.display = 'block'; } });

@@ -1,0 +1,59 @@
+/* Missão 11: carregado apenas pelo Ranking; Home/Servidor/Memorial não mudam. */
+body[data-page="ranking"] .season-chip {
+  inline-size: 22rem; max-inline-size: 100%; min-inline-size: 0; flex: 0 0 auto;
+}
+body[data-page="ranking"] .season-chip .season-countdown {
+  font-family: ui-monospace,Consolas,monospace; font-variant-numeric: tabular-nums;
+  font-size: 20px; letter-spacing: 0; min-block-size: 1.6em;
+}
+body[data-page="ranking"] .supreme-showcase {
+  position: relative; top: auto; align-self: start; transform: none; transition: none;
+}
+body[data-page="ranking"] .supreme-showcase .showcase-stats b { font-size: clamp(20px,1.85vw,27px); }
+body[data-page="ranking"] .ranking-page-grid { grid-template-columns: minmax(270px,.75fr) minmax(0,2.3fr); }
+body[data-page="ranking"] .ranking-board { min-width: 0; }
+body[data-page="ranking"] .ranking-board .table-scroll { max-width: 100%; overflow-x: auto; }
+body[data-page="ranking"] .ranking-board .ranking-table { table-layout: auto; width: 100%; min-width: 0; }
+body[data-page="ranking"] .ranking-board .ranking-table th,
+body[data-page="ranking"] .ranking-board .ranking-table td {
+  width: auto; padding: 20px 10px; text-align: center; vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+body[data-page="ranking"] .ranking-board .ranking-table th { padding-block: 16px; font-size: 10px; }
+body[data-page="ranking"] .ranking-board .ranking-table .col-player { min-width: 15rem; text-align: left; }
+body[data-page="ranking"] .ranking-board .player-cell { min-height: 64px; gap: 12px; }
+body[data-page="ranking"] .ranking-board .player-avatar { width: 48px; height: 48px; flex: 0 0 48px; object-fit: contain; aspect-ratio: 1; }
+body[data-page="ranking"] .ranking-board .player-name { font-size: 16px; overflow-wrap: normal; word-break: normal; hyphens: none; line-height: 1.5; }
+body[data-page="ranking"] .ranking-board .player-cell small { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+body[data-page="ranking"] .ranking-table .col-position { min-width: 3.5rem; }
+body[data-page="ranking"] .ranking-table .col-state { min-width: 4.5rem; }
+body[data-page="ranking"] .ranking-table .col-time { min-width: 6rem; white-space: nowrap; }
+body[data-page="ranking"] .ranking-table .col-record { min-width: 8rem; }
+body[data-page="ranking"] .col-record time { display: block; white-space: nowrap; }
+@media(max-width:1000px) {
+  body[data-page="ranking"] .ranking-page-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media(max-width:700px) {
+  body[data-page="ranking"] .season-chip { inline-size: 100%; }
+  body[data-page="ranking"] .ranking-board .table-scroll { padding: 0 16px; overflow: visible; }
+  body[data-page="ranking"] .ranking-board .ranking-table,
+  body[data-page="ranking"] .ranking-board .ranking-table tbody { display: block; width: 100%; }
+  body[data-page="ranking"] .ranking-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  body[data-page="ranking"] .ranking-table tbody tr {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 12px;
+    padding: 12px; margin-block: 12px; border: 1px solid #f12b9130; background: #140d1480;
+  }
+  body[data-page="ranking"] .ranking-board .ranking-table td {
+    display: block; min-width: 0; padding: 12px 4px; border: 0; white-space: normal;
+  }
+  body[data-page="ranking"] .ranking-table td::before { content: attr(data-label); display: block; font-size: 10px; color: #cdb6c3; margin-bottom: 8px; }
+  body[data-page="ranking"] .ranking-board .ranking-table td.col-player { min-width: 0; grid-column: 1/-1; order: -1; text-align: left; }
+  body[data-page="ranking"] .ranking-table td.col-player::before { display: none; }
+  body[data-page="ranking"] .ranking-table td.col-position { grid-column: 1/-1; order: -2; display: flex; align-items: center; justify-content: flex-start; gap: 12px; }
+  body[data-page="ranking"] .ranking-table td.col-position::before { margin-bottom: 0; }
+  body[data-page="ranking"] .ranking-board .player-cell small { white-space: normal; overflow-wrap: anywhere; }
+  body[data-page="ranking"] .ranking-board .player-name { overflow-wrap: anywhere; }
+  body[data-page="ranking"] .ranking-table td.table-empty { grid-column: 1/-1; }
+  body[data-page="ranking"] .ranking-table td.col-record small { display: none; }
+  body[data-page="ranking"] .ranking-table td.col-record time { white-space: normal; }
+}

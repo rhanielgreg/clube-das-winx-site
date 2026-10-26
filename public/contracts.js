@@ -25,17 +25,21 @@ export function csvField(value) {
 export function normalizeCharacter(row) {
   return { ...row, alive: typeof row.alive === 'boolean' ? row.alive : null };
 }
+// A ordenação visual nunca sobrescreve rank_position, que pertence ao campeonato.
+export function normalizeRankingFilter(value) {
+  return ['kills','time','dead'].includes(value)?value:'kills';
+}
 export function filterRanking(ranking, graveyard, { filter = 'kills', search = '' } = {}) {
-  const term = search.trim().toLocaleLowerCase('pt-BR');
-  let rows = [...(filter === 'dead' ? graveyard : ranking)].filter((row) =>
-    `${row.steam_username || ''} ${row.character_name || ''}`.toLocaleLowerCase('pt-BR').includes(term));
-  if (filter === 'alive') rows = rows.filter((row) => row.alive === true);
-  if (filter !== 'dead') rows = rows.filter((row) => row.alive === true);
-  if (filter === 'dead') rows = rows.filter((row) => row.alive === false);
-  if (filter === 'time') rows.sort((a, b) => (b.survival_seconds ?? -1) - (a.survival_seconds ?? -1));
-  if (filter === 'kills') rows.sort((a, b) => (b.kills_total ?? -1) - (a.kills_total ?? -1));
-  if (filter === 'dead') rows.sort((a, b) => Date.parse(b.died_at || 0) - Date.parse(a.died_at || 0));
-  return rows;
+  filter=normalizeRankingFilter(filter);
+  const term=search.trim().toLocaleLowerCase('pt-BR');
+  const value=(row,key)=>hasNumber(row[key])&&Number(row[key])>=0?Number(row[key]):-1;
+  const byId=(a,b)=>String(a.profile_id||'').localeCompare(String(b.profile_id||''),'en');
+  const byKills=(a,b)=>value(b,'kills_total')-value(a,'kills_total')||value(b,'survival_seconds')-value(a,'survival_seconds')||byId(a,b);
+  const rows=[...(filter==='dead'?graveyard:ranking)].filter(row=>
+    row.alive===(filter==='dead'?false:true)&&`${row.steam_username||''} ${row.character_name||''}`.toLocaleLowerCase('pt-BR').includes(term));
+  const death=row=>Number.isFinite(Date.parse(row.died_at||''))?Date.parse(row.died_at):-1;
+  return rows.sort(filter==='time'?(a,b)=>value(b,'survival_seconds')-value(a,'survival_seconds')||byKills(a,b)
+    :filter==='dead'?(a,b)=>death(b)-death(a)||byKills(a,b):byKills);
 }
 export function recentHistory(points, seasonId, limit = 90) {
   return points.filter((point) => (!seasonId || point.season_id === seasonId) && Number.isFinite(Date.parse(point.observed_at)))

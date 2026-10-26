@@ -1,3 +1,4 @@
+import { withSeasonSchedule } from '../lib/season-schedule.js';
 import { callPublicRpc, isStale } from '../lib/supabase-public.js';
 import { validateAdminAction } from '../lib/admin-actions.js';
 import { UUID } from '../public/contracts.js';
@@ -93,7 +94,8 @@ export default async function handler(req, res) {
   const config = getAdminConfig();
 
   if (req.method === 'GET') {
-    if (!(await resolveDashboardContract()).official) return send(res, 503, { error: officialContractPending });
+    const contract=await resolveDashboardContract();
+    if (!contract.official) return send(res, 503, { error: officialContractPending });
     try {
       const [rankingResult, seasonsResult, syncResult] = await Promise.all([
         callPublicRpc('get_public_ranking', { p_limit: 250 }),
@@ -102,7 +104,8 @@ export default async function handler(req, res) {
       ]);
 
       const sync = Array.isArray(syncResult.data) ? syncResult.data[0] ?? null : syncResult.data;
-      const activeSeason = seasonsResult.data?.find((s) => s.status === 'active') || null;
+      const seasons=await withSeasonSchedule(seasonsResult.data ?? [],process.env,contract.release);
+      const activeSeason = seasons.find((s) => s.status === 'active') || null;
 
       return send(res, 200, {
         admin: {
@@ -110,7 +113,7 @@ export default async function handler(req, res) {
           hasServiceKey: Boolean(config.serviceKey),
         },
         activeSeason,
-        seasons: seasonsResult.data ?? [],
+        seasons,
         ranking: rankingResult.data ?? [],
         sync,
         stale: isStale(sync?.last_success_at),
