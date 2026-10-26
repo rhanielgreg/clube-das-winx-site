@@ -7,5 +7,5 @@ export function collectionCountdown(sync,now) {
  if(sync.latest_attempt_status!=='success')return 'Aguardando confirmação do coletor';
  const expected=(Math.floor(started/300000)+1)*300000;
  const remaining=Math.ceil((expected-now)/1000);
- return remaining>0&&remaining<=300?`Próxima coleta prevista em ${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`:'Aguardando confirmação da próxima coleta';
+ return remaining>0&&remaining<=300?`Próxima atualização em ${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`:'Aguardando confirmação da próxima coleta';
 }

@@ -13,7 +13,7 @@ export function createPreviewServer() {
     res.setHeader('cache-control', 'no-store');
     res.setHeader('x-content-type-options', 'nosniff');
     // Uma prévia isolada: sem proxy, credenciais, acesso à rede externa ou escrita.
-    res.setHeader('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; frame-ancestors 'self'");
+    res.setHeader('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://avatars.steamstatic.com https://avatars.akamai.steamstatic.com https://avatars.fastly.steamstatic.com https://avatars.cloudflare.steamstatic.com; connect-src 'self'; font-src 'self'; base-uri 'none'; frame-ancestors 'self'");
     const json = (status, body) => { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(body)); };
     if (!['GET', 'HEAD'].includes(req.method)) return json(405, { error: 'Prévia de demonstração: operações de escrita bloqueadas.' });
     if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(req.headers.host || '')) return json(403, { error: 'Acesso permitido apenas pelo endereço local.' });

@@ -506,3 +506,74 @@ body[data-page="memorial"] .section-heading { margin-top: 32px; }
 .achievement-date-note { font-size: 10px !important; }
 .ranking-board.has-distance .ranking-table { min-width: 1060px; }
 @media(max-width:700px) { .achievement-grid { grid-template-columns: 1fr; } .achievement-content { padding-inline: 15px; } .achievement-section>summary { padding-inline: 17px; font-size: 12px; } .achievement-card { padding: 15px; gap: 12px; } }
+
+/* Missão 09: limpeza e acabamento da composição existente. */
+body.is-preview { padding-top: var(--demo-height); }
+.hero-stage { padding-bottom: 65px; }
+.hero-actions { margin-top: 30px; }
+.server-section { padding-bottom: 15px; margin-bottom: 0; align-items: center; }
+.server-readout { padding: clamp(26px,3.5vw,48px); }
+.server-main-state { gap: 18px; margin-block: 28px; }
+.server-main-state strong { font-size: clamp(34px,3.6vw,52px); }
+.server-main-state .live-dot { width: 17px; height: 17px; }
+.live-dot.is-online { background: #74edaf; box-shadow: 0 0 0 5px #74edaf16; animation: online-signal 2.8s ease-in-out infinite; }
+@keyframes online-signal { 50% { box-shadow: 0 0 0 10px #74edaf08,0 0 18px #74edaf40; } }
+.server-facts { grid-template-columns: 1fr; padding-block: 22px; }
+.server-facts dt { font-size: 15px; }
+.server-facts dd { font-size: clamp(34px,4vw,50px); margin-top: 7px; }
+.leader-card h3, .mvp-summary h2 { font-size: clamp(21px,1.8vw,28px); line-height: 1.3; text-wrap: balance; }
+.leader-card h3, .mvp-summary h2, .profile-header h1, .survivor-card h3, .player-cell a, .player-meta strong { overflow-wrap: anywhere; word-break: normal; text-wrap: balance; }
+.leader-portrait, .mvp-avatar, .profile-avatar { aspect-ratio: 1; height: auto; }
+.leader-portrait img, .mvp-avatar img, .profile-avatar img, .player-avatar, .dossier-shortcut img { aspect-ratio: 1; object-fit: contain; }
+.ranking-list .player-avatar { flex-shrink: 0; width: 36px; height: 36px; }
+.ranking-list .player-meta { min-width: 0; flex: 1; }
+.season-chip { max-width: 350px; }
+.season-chip time { display: block; margin-top: 12px; font-size: 12px; line-height: 1.6; color: var(--pink-soft); }
+.collection-compact { justify-content: flex-end; padding: 15px 22px; }
+.collection-compact span { font-size: 13px; font-variant-numeric: tabular-nums; }
+.dossier-shortcut>div { min-width: 0; }
+.profile-header>div { min-width: 0; }
+.profile-header h1 { font-size: clamp(26px,3.2vw,45px); }
+.dossier-group h2 { font-size: clamp(19px,2vw,25px); line-height: 1.4; margin-bottom: 22px; }
+.dossier-metrics { gap: 20px; }
+.dossier-metric strong { font-size: clamp(26px,2.8vw,38px); line-height: 1.3; }
+.dossier-metric small { font-size: 12px; line-height: 1.6; }
+.dossier-dates { gap: 18px; }
+.profile-layout.is-single { grid-template-columns: minmax(0,1fr); }
+.achievement-unavailable { font-size: 12px; color: var(--muted); margin-block: 20px; }
+.history-pagination { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.history-pagination button { padding: 10px 16px; border: 1px solid #f12b9144; background: #190f19; font-size: 13px; min-height: 44px; }
+.history-pagination span { font-size: 13px; text-align: center; font-variant-numeric: tabular-nums; }
+.history-pagination small { display: block; color: var(--muted); font-size: 11px; }
+.history-table td, .history-table th { white-space: normal; }
+.memorial-categories { grid-template-columns: repeat(auto-fit,minmax(min(260px,100%),1fr)); }
+.memorial-card { display: flex; flex-direction: column; min-width: 0; }
+.memorial-card-top { height: auto; min-height: 270px; padding: 24px 20px 18px; align-items: stretch; }
+.memorial-stone { width: 100%; min-height: 235px; height: auto; padding: 48px 20px 24px; border-radius: 110px 110px 4px 4px; gap: 18px; }
+.memorial-stone h3 { font-family: Georgia,serif; font-size: clamp(23px,2.4vw,32px); letter-spacing: -.02em; line-height: 1.25; margin: 0; min-height: 2.5em; display: grid; place-content: center; color: #f4dde8; text-wrap: balance; overflow-wrap: anywhere; }
+.memorial-stone>small { font-family: Poppins,Arial,sans-serif; font-size: 10px; letter-spacing: .12em; }
+.memorial-stone time, .stone-date-unknown { font-size: 12px; color: #d6b8c6; }
+.memorial-card-body { display: flex; flex-direction: column; flex: 1; padding-top: 12px; }
+.memorial-numbers { align-items: start; gap: 18px 12px; }
+.memorial-distance { grid-column: 1/-1; }
+.memorial-foot { margin-top: auto; gap: 16px; padding-top: 22px; }
+.memorial-account { margin-bottom: 22px; overflow-wrap: anywhere; }
+.site-footer { grid-template-columns: minmax(0,1fr) minmax(0,1fr); padding-block: 30px 22px; gap: 20px 35px; }
+.site-footer nav { justify-content: flex-end; align-content: center; }
+.site-footer>small { font-size: 12px; line-height: 1.7; margin-top: 0; padding-top: 17px; }
+@media(max-width:900px) { .site-footer nav { grid-column: auto; } .profile-header h1 { font-size: clamp(25px,4vw,36px); } }
+@media(max-width:600px) {
+  .server-section { padding-bottom: 15px; }
+  .site-footer { grid-template-columns: 1fr; gap: 18px; }
+  .site-footer nav { justify-content: flex-start; }
+  .site-footer>small { font-size: 12px; }
+  .history-pagination { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .history-pagination span { grid-column: 1/-1; grid-row: 1; }
+  .history-pagination button { padding-inline: 11px; font-size: 12px; }
+  .history-pagination span { font-size: 12px; }
+  .history-table td { font-size: 12px; padding: 12px 9px; }
+  .history-table th { padding-inline: 9px; }
+  .memorial-card-top { min-height: 255px; }
+  .dossier-metrics { gap: 18px; }
+}
+@media(prefers-reduced-motion:reduce) { .live-dot.is-online { animation: none; } }

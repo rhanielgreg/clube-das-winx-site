@@ -7,7 +7,7 @@ function recognitionNote(unlock) {
  return `${observed?'Evidência coletada em '+observed+'. ':''}${recognized?'Reconhecida em '+recognized+'. ':''}Data exata do feito desconhecida.`;
 }
 export function achievementPanel(data,selectedCategory='all') {
- if(!data||data.catalog_count!==100||!Array.isArray(data.catalog)||data.catalog.length!==100||!Array.isArray(data.unlocks)) return '<p class="dossier-note">Conquistas aguardando integração validada da vida. Nenhuma medalha é presumida.</p>';
+ if(!data||data.catalog_count!==100||!Array.isArray(data.catalog)||data.catalog.length!==100||!Array.isArray(data.unlocks)) return '<p class="achievement-unavailable">Conquistas indisponíveis</p>';
  const earned=visibleAchievements(data.unlocks,data.catalog);
  const ids=new Set(data.unlocks.map(a=>a.achievement_id));
  const available=new Set(data.available_metrics||[]);

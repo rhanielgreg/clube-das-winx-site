@@ -8,6 +8,7 @@ scripts/recovery-export.sql
 scripts/restore-recovery.py
 scripts/rehearse-postgrest.py
 scripts/preview-server.js
+scripts/preview-public.js
 scripts/preview-achievements.js
 node_modules/.mission*
 *.db

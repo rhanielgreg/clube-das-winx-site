@@ -1,3 +1,5 @@
+import { mountFooter } from './footer.js';
+mountFooter();
 import { seasonResult } from './championship.js';
 import { formatNumber, csvField, formatDuration } from './contracts.js';
 const $ = (selector, root = document) => root.querySelector(selector);

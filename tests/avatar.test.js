@@ -16,7 +16,7 @@ test('monogramas distinguem registros homônimos, são estáveis e escapam conte
   const svg = decodeURIComponent(hostile.src.split(',')[1]);
   assert.ok(svg.includes('&lt;&gt;'));
   assert.ok(!svg.includes('<x'));
-  assert.ok(decodeURIComponent(characterAvatar({}).src).includes('SEM ID'));
+  assert.ok(decodeURIComponent(characterAvatar({}).src).includes('CLUBE DAS WINX'));
 });
 
 test('imagem Steam exige associação configurada e host exato; falhas têm fallback próprio', () => {
@@ -37,7 +37,7 @@ test('Steam: UUID explícito precede nome; apenas perfil permitido é consultado
     'Nome igual':'https://steamcommunity.com/id/nao-usar'})};
   const avatar=await getSteamAvatar('Nome igual',{profileId:first,env,fetchImpl:async (url,options)=>{
     requested.push(url); assert.equal(options.redirect,'error');
-    return new Response('<avatarFull><![CDATA[https://avatars.steamstatic.com/abc_full.jpg]]></avatarFull>');
+    return new Response('<steamID64>76561198000000001</steamID64><avatarFull><![CDATA[https://avatars.steamstatic.com/abc_full.jpg]]></avatarFull>');
   }});
   assert.deepEqual(requested,['https://steamcommunity.com/profiles/76561198000000001/?xml=1']);
   assert.equal(avatar,'https://avatars.steamstatic.com/abc_full.jpg');

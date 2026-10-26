@@ -2,6 +2,11 @@
 import { hasNumber, UUID } from './contracts.js';
 
 const validNumber = (value) => (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') && hasNumber(value) && Number(value) >= 0;
+export function profileReturn(profile,source) {
+  if(profile.alive===false)return {href:'/memorial',label:'Voltar ao Memorial'};
+  if(source==='home')return {href:'/index.html',label:'Voltar ao Início'};
+  return profile.alive===true?{href:'/ranking#sobreviventes',label:'Voltar aos Sobreviventes'}:{href:'/ranking',label:'Voltar ao Ranking'};
+}
 export function profileMetrics(profile, validatedMetrics = []) {
   const confirmed = new Set(Array.isArray(validatedMetrics) ? validatedMetrics : []);
   const available = (key) => confirmed.has(key) && validNumber(profile[key]);

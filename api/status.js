@@ -1,5 +1,6 @@
 import { renderStatusCard } from '../lib/card.js';
 import { getServerStatus } from '../lib/server-status.js';
+import { STATUS_VALIDITY_MS } from '../public/status-view.js';
 
 const commonHeaders = {
   'access-control-allow-origin': '*',
@@ -28,6 +29,7 @@ export default {
       });
     }
 
-    return Response.json(status, { headers: commonHeaders });
+    const checked=Date.parse(status.checkedAt||'');
+    return Response.json({...status,serverTime:new Date().toISOString(),validUntil:Number.isFinite(checked)?new Date(checked+STATUS_VALIDITY_MS).toISOString():null}, { headers: commonHeaders });
   },
 };

@@ -18,6 +18,7 @@
     "deploy": "vercel",
     "deploy:prod:stage": "vercel deploy --prod --skip-domain",
     "preview": "node scripts/preview-server.js",
+    "preview:public": "node scripts/preview-public.js",
     "test:sql": "node --test tests/sql.test.js",
     "test:catalog": "node scripts/sync-achievements.js --check",
     "check:collector-schema": "node scripts/check-collector-schema.js",

@@ -22,9 +22,9 @@ export function characterAvatar(row = {}) {
     .filter(Boolean).slice(0, 2).map((part) => Array.from(part)[0]).join('').toLocaleUpperCase('pt-BR') : '?';
   const angle = seed % 60;
   // Monograma de registro, não foto ou prova de identidade de uma vida.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><rect width="240" height="240" rx="24" fill="#18131e"/><circle cx="120" cy="116" r="94" fill="none" stroke="${accent}" stroke-opacity=".24"/><path d="M120 23 210 116 120 209 30 116Z" fill="none" stroke="${accent}" stroke-opacity=".3" transform="rotate(${angle} 120 116)"/><path d="M39 116 88 87 71 143ZM201 116 152 87 169 143Z" fill="${accent}" opacity=".12"/><text x="120" y="135" text-anchor="middle" fill="${accent}" font-family="Georgia,serif" font-size="58">${escapeHtml(initials)}</text><text x="120" y="196" text-anchor="middle" fill="${accent}" opacity=".65" font-family="monospace" font-size="12" letter-spacing="3">${identified ? id.slice(-6).toUpperCase() : 'SEM ID'}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><rect width="240" height="240" rx="24" fill="#18131e"/><circle cx="120" cy="116" r="94" fill="none" stroke="${accent}" stroke-opacity=".24"/><path d="M120 23 210 116 120 209 30 116Z" fill="none" stroke="${accent}" stroke-opacity=".3" transform="rotate(${angle} 120 116)"/><path d="M39 116 88 87 71 143ZM201 116 152 87 169 143Z" fill="${accent}" opacity=".12"/><text x="120" y="135" text-anchor="middle" fill="${accent}" font-family="Georgia,serif" font-size="58">${escapeHtml(initials)}</text><text x="120" y="196" text-anchor="middle" fill="${accent}" opacity=".65" font-family="monospace" font-size="12" letter-spacing="3">CLUBE DAS WINX</text></svg>`;
   const fallback = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   const steam = identified && row.avatar_source === 'steam_configured' && trustedSteamAvatar(row.avatar_url);
   return { src: steam ? row.avatar_url : fallback, fallback,
-    label: steam ? 'Avatar Steam · associação configurada' : 'Monograma do registro' };
+    label: steam ? 'Avatar Steam' : 'Avatar do personagem' };
 }

@@ -3,6 +3,7 @@ import { enrichRankingWithAvatars } from '../lib/steam-avatar.js';
 import { normalizeCharacter } from '../public/contracts.js';
 import { livingRanking, OFFICIAL_RULES } from '../public/championship.js';
 import { resolveDashboardContract, officialContractPending } from '../lib/championship-contract.js';
+import { withSeasonSchedule } from '../lib/season-schedule.js';
 
 function send(res, status, body) {
   res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
       life_identity_verified: lifeEnabled&&ranking.length>0&&ranking.every(row=>row.life_identity_verified===true),
       server_time:contract.release?.server_time||new Date().toISOString(),
       cohort_started_at:contract.release?.cohort_started_at||null,
-      seasons: seasonsResult.data ?? [],
+      seasons: await withSeasonSchedule(seasonsResult.data ?? []),
       sync:sync?{...sync,...(contract.release?{latest_attempt_at:contract.release.latest_attempt_at,latest_attempt_status:contract.release.latest_attempt_status,
         collector_interval_seconds:contract.release.collector_interval_seconds,collector_cron_utc:contract.release.collector_cron_utc}: {})}:null,
       stale: isStale(sync?.last_success_at)||['failed','running'].includes(contract.release?.latest_attempt_status||sync?.latest_attempt_status),
