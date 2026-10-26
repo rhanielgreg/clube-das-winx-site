@@ -4,6 +4,10 @@ Portal gamer hospedável na Vercel, com status real A2S, comandos Discord via In
 
 Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway é mantido separadamente em [clube-das-winx-collector](https://github.com/rhanielgreg/clube-das-winx-collector). A pasta local `collector/` não faz parte deste repositório.
 
+## Missão 09 — revisão local
+
+Refinamentos consolidados em `codex/mission09`, ainda sem publicação. `npm run preview:public` abre [a prévia somente leitura com dados públicos reais](http://127.0.0.1:4174/). Migração 008 e prazo da temporada continuam propostas não aplicadas; o novo contrato é opt-in após conferência. Implementação, testes e pendências no [checkpoint](docs/MASTER07-CHECKPOINT.md).
+
 ## Integração e publicação — Missão 08
 
 Versão publicada e validada no [domínio original](https://clubedaswinx-delta.vercel.app/), commit `323d965`. O marcador `/api/release` comprova a revisão. Leitor TTF/coorte seguem desativados e não há medalhas reais concedidas; detalhes e pendências no checkpoint.
