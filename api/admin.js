@@ -113,7 +113,8 @@ export default async function handler(req, res) {
         },
         activeSeason,
         seasons,
-        ranking: rankingResult.data ?? [],
+        ranking: (rankingResult.data ?? []).map(row=>contract.version==='winx-v2'&&!contract.life
+          ?{...row,life_played_seconds:row.survival_seconds,survival_seconds:null,time_scope:'unavailable_season'}:row),
         sync,
         ...(contract.version==='winx-v2'?{monthly_automation:true,competition_rules:'winx-v2',
           pending_certifications:seasons.filter(s=>s.outcome==='pending_certification').length}:{}),

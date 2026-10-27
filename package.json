@@ -20,7 +20,7 @@
     "preview": "node scripts/preview-server.js",
     "preview:public": "node scripts/preview-public.js",
     "test:sql": "node --test tests/sql.test.js",
-    "test:catalog": "node scripts/sync-achievements.js --check && node scripts/sync-medals-v2.js --check",
+    "test:catalog": "node scripts/sync-achievements.js --check && node scripts/sync-medals-v2.js --check && node scripts/sync-reward-catalog.js --check",
     "check:collector-schema": "node scripts/check-collector-schema.js",
     "check:readiness": "node scripts/release-readiness.js",
     "test:collector:source": "python -B -m unittest discover -s ../clube-das-winx-collector -p test*.py"

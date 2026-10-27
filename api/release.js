@@ -5,5 +5,6 @@ export default async function handler(req,res){
  const contract=await resolveDashboardContract();
  const revision=process.env.VERCEL_GIT_COMMIT_SHA;
  return res.status(200).json({release:'mission14',commit:/^[a-f0-9]{40}$/i.test(revision||'')?revision:null,
-  competition_contract:contract.official?(contract.version||'winx-v1'):null,life_contract:contract.life?'life-v1':null});
+  competition_contract:contract.official?(contract.version||'winx-v1'):null,life_contract:contract.life?'life-v1':null,
+  ...(contract.release?.rewards_installed===true?{reward_contract:'season-rewards-v1'}:{})});
 }

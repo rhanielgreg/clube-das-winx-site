@@ -5,6 +5,9 @@ public/demo-data.js
 docs/
 migrations/
 scripts/recovery-export.sql
+scripts/recovery-export-v2.sql
+scripts/rehearse-recovery.js
+scripts/verify-reward-sources.js
 scripts/restore-recovery.py
 scripts/rehearse-postgrest.py
 scripts/preview-server.js

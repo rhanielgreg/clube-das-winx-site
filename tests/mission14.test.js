@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
+import {createMonthlyTestDb} from './fixtures/monthly-db.js';
 import {achievementCatalog} from '../public/achievements-catalog.js';
 import {achievementCatalog as legacy} from '../public/legacy-achievements-catalog.js';
 import {evaluateMedalsV2,medalProgress} from '../lib/achievements.js';
@@ -121,11 +121,7 @@ test('APIs v2 usam catálogo ativo, toleram ordem JSONB, ocultam dados privados 
 });
 
 async function database(){
- const db=new PGlite();await db.exec(await readFile(new URL('./fixtures/schema-before.sql',import.meta.url),'utf8'));
- for(const name of ['001_restrict_ingestion','002_public_read_contracts','003_official_championship','004_life_achievements','006_dashboard_release','005_life_read_contracts','007_controlled_life_activation'])await db.exec(await readFile(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
- await db.query("insert into ranking_seasons(id,name,slug,status,started_at)values($1,'Temporada 1','temporada-1','active','2026-10-20T01:05:18.930285Z')",[season]);
- for(const name of ['008_season_schedule','009_correct_season1_deadline','010_life_integrity_guards','011_readonly_operations','012_monthly_championship_v2','013_medals_v2','014_product14_contracts','015_complete_public_recovery'])await db.exec(await readFile(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
- return db;
+ return createMonthlyTestDb();
 }
 const queryValue=async(db,sql,params=[])=>Object.values((await db.query(sql,params)).rows[0])[0];
 async function activate(db){await db.query('select activate_product14_v2()');}

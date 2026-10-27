@@ -21,9 +21,16 @@
     },
     "api/admin.js": {
       "maxDuration": 15
+    },
+    "api/rewards.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
+    {
+      "source": "/api/admin-rewards",
+      "destination": "/api/rewards?view=admin"
+    },
     {
       "source": "/",
       "destination": "/index.html"

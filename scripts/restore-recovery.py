@@ -13,7 +13,8 @@ EXPECTED={'collector_locks','collector_runs','game_characters','game_players',
 EXPANDED=EXPECTED|{'season_results','season_classification','life_identities','life_observations',
                   'achievement_definitions','life_achievements','dashboard_rollout_state',
                   'product14_state','season_cycles_v2','season_archive_v2','season_uncertain_intervals_v2',
-                  'medal_definitions_v2','medal_baselines_v2','medal_unlocks_v2','source_epochs_v2','season_admin_audit_v2'}
+                  'medal_definitions_v2','medal_baselines_v2','medal_unlocks_v2','source_epochs_v2','season_admin_audit_v2',
+                  'reward_catalogs_v1','season_reward_draws_v1','reward_delivery_state_v1','reward_delivery_components_v1','reward_events_v1'}
 CONTAINER='winx-mission08-restore-20261025'
 
 def execute(sql, database='postgres'):

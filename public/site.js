@@ -1,5 +1,5 @@
 import { rankingClock, clockNow } from './ranking-clock.js';
-import { killBreakdown, killBreakdownText } from './kill-breakdown.js';
+import { killBreakdown, killBreakdownText, rankingResidual } from './kill-breakdown.js';
 import { collectionCountdown } from './collection-countdown.js';
 import { formatNumber, formatDuration, hasNumber, lifeState, escapeHtml as safe, filterRanking, normalizeRankingFilter } from './contracts.js';
 import { memorialDate } from './presentation.js';
@@ -11,7 +11,9 @@ import { seasonDeadline, seasonCountdown } from './season-schedule.js';
 import { statusState } from './status-view.js';
 import { mountRankingModes } from './ranking-modes.js';
 import { mountMedals } from './medal-showcase.js';
+import { mountPublicRewards } from './rewards-view.js';
 mountRankingModes();
+mountPublicRewards();
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -191,7 +193,7 @@ function rankingRow(row, showDistance = false, visualPosition = null) {
   const observed = memorialDate(row);
   return `<tr><td class="col-position" data-label="Ordem"><span class="rank-no ${row.alive===true&&Number(position) <= 3 ? 'top' : ''}">${safe(position === '—' ? position : String(position).padStart(2, '0'))}</span></td>
     <td class="col-player" data-label="Sobrevivente / jogador"><div class="player-cell"><img class="player-avatar" ${avatarAttributes(row)} alt="" loading="lazy"><span><strong class="player-name">${safe(row.character_name || 'Nome não informado')}</strong><small>Jogador / ${safe(row.steam_username || 'Não informado')}</small></span></div></td>
-    <td class="col-kills" data-label="Kills" title="${safe(killBreakdownText(killBreakdown(row)))}"><b>${formatNumber(row.kills_total)}</b></td><td class="col-firearm" data-label="Arma">${formatNumber(row.kills_firearm)}</td><td class="col-melee" data-label="Corpo a corpo">${formatNumber(row.kills_melee)}</td>${row.monthly_contract?`<td class="col-other" data-label="Outros / não discriminados">${formatNumber(killBreakdown(row).undiscriminated)}</td>`:""}<td class="col-time" data-label="Tempo jogado">${formatDuration(row.survival_seconds)}</td>${showDistance ? `<td class="col-distance" data-label="Distância">${row.life_identity_verified === true && row.distance_unit === "meters" && hasNumber(row.distance_total_m) ? `${formatNumber(Number(row.distance_total_m)/1000)} km` : "—"}</td>` : ""}<td class="col-state" data-label="Estado">${stateBadge(row.alive)}</td><td class="record-date col-record" data-label="Registro"><small>${observed.label}</small><time>${safe(date(observed.value))}</time></td></tr>`;
+    <td class="col-kills" data-label="Kills" title="${safe(killBreakdownText(killBreakdown(row)))}"><b>${formatNumber(row.kills_total)}</b></td><td class="col-firearm" data-label="Arma">${formatNumber(row.kills_firearm)}</td><td class="col-melee" data-label="Corpo a corpo">${formatNumber(row.kills_melee)}</td>${row.monthly_contract?`<td class="col-other" data-label="Outros / não discriminados">${formatNumber(rankingResidual(row))}</td>`:""}<td class="col-time" data-label="Tempo jogado">${formatDuration(row.survival_seconds)}</td>${showDistance ? `<td class="col-distance" data-label="Distância">${row.life_identity_verified === true && row.distance_unit === "meters" && hasNumber(row.distance_total_m) ? `${formatNumber(Number(row.distance_total_m)/1000)} km` : "—"}</td>` : ""}<td class="col-state" data-label="Estado">${stateBadge(row.alive)}</td><td class="record-date col-record" data-label="Registro"><small>${observed.label}</small><time>${safe(date(observed.value))}</time></td></tr>`;
 }
 
 function renderTable() {
@@ -258,6 +260,8 @@ async function loadRanking() {
     rankingPayload = payload;
     updateLeader(payload.ranking[0]);
     if(payload.competition_rules==='winx-v2') {
+      setText('.supreme-showcase .fine-print','Liderança observada · certificação oficial pendente');
+      $('.supreme-showcase')?.setAttribute('aria-label','Liderança observada da temporada');
       const [a,b]=payload.ranking;
       if(a&&b&&hasNumber(a.kills_total)&&hasNumber(a.survival_seconds)&&Number(a.kills_total)===Number(b.kills_total)&&Number(a.survival_seconds)===Number(b.survival_seconds)){
         updateLeader(null);setText('[data-leader-name]','Empate na liderança');setText('[data-leader-account]','Kills e tempo iguais · sem terceiro desempate');

@@ -1,5 +1,10 @@
 // Only compare categories with the same scope and observation. A residual is not
 // evidence of Vehicle or Other, and Melee already contains its weapon subtypes.
+export function rankingResidual(row){
+  const values=[row?.kills_total,row?.kills_firearm,row?.kills_melee];
+  if(!values.every(value=>Number.isSafeInteger(value)&&value>=0))return null;
+  const residual=values[0]-values[1]-values[2];return residual>=0?residual:null;
+}
 export function killBreakdown(row, { scope = 'season' } = {}) {
   const count = n => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0 && n <= 2_000_000_000;
   const total = count(row?.kills_total) ? row.kills_total : null;

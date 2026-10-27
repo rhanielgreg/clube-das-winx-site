@@ -3,6 +3,7 @@ import { createPasswordRecovery, requestPasswordRecovery, RECOVERY_INVALID } fro
 import { createAdminSession, forgetStoredAdminSession, retryAfterAt } from './admin-session.js';
 import { createRecoveryRequest } from './recovery-request.js';
 import { seasonDeadline } from './season-schedule.js';
+import { mountAdminRewards } from './admin-rewards.js';
 import { mountFooter } from './footer.js';
 mountFooter();
 import { seasonResult } from './championship.js';
@@ -220,6 +221,7 @@ async function fetchDashboardData(session = currentSession) {
 
 function renderDashboard(data) {
   currentDashboardData = data;
+  mountAdminRewards({token:()=>currentSession?.access_token});
   if(data.monthly_automation===true){
     $$('[data-action-open-close-modal], [data-start-season-btn], [data-modal-confirm-btn], [data-action-reset-baseline]').forEach(button=>{button.disabled=true;button.title='Calendário mensal automático; operação manual legada bloqueada.';});
     const legacy=$('[data-new-season-form]');if(legacy)legacy.closest('section').hidden=true;
