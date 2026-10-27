@@ -147,6 +147,8 @@ test('tela usa numeração visual, elimina Vivos, mantém MVP oficial e CSS rest
   assert.ok(css.includes('position: relative; top: auto; align-self: start; transform: none; transition: none;'));
   for(const file of ['public/index.html','public/memorial.html','public/memorial-view.js','public/identity.css','public/styles.css','api/status.js','public/achievements-catalog.js','migrations/008_season_schedule.sql']) {
     const before=execFileSync('git',['show','0b003fb:'+file],{encoding:'utf8'}).replaceAll('\r\n','\n');
-    assert.equal(await source(file),before,file+' permanece congelado');
+    let current = await source(file);
+    if (file === 'public/index.html') current = current.replace('<meta name="referrer" content="no-referrer"><script src="/auth-return.js"></script>', '');
+    assert.equal(current,before,file+' permanece congelado, salvo bootstrap de recuperação autorizado');
   }
 });

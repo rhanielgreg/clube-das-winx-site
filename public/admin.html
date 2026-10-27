@@ -6,6 +6,8 @@
   <title>Admin Dashboard · Clube das Winx</title>
   <meta name="description" content="Painel administrativo de controle de temporadas, ranking e telemetria do Clube das Winx Project Zomboid.">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <script src="/auth-return.js"></script>
   <link rel="icon" href="/assets/winx-zomboid-profile.webp">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/admin.css">
@@ -43,7 +45,7 @@
         </div>
 
         <!-- FORMULÁRIO 1: E-MAIL E SENHA (SEM LIMITES DE ENVIO) -->
-        <form class="auth-form" data-password-form>
+        <form class="auth-form" method="post" data-password-form>
           <div class="input-group">
             <label for="admin-email-pwd">E-MAIL DO ADMINISTRADOR</label>
             <input type="email" id="admin-email-pwd" name="email" required autocomplete="email" placeholder="seu-email@dominio.com">
@@ -56,10 +58,11 @@
             <span class="button-scan"></span>
             ENTRAR COM SENHA ➔
           </button>
+          <button type="button" class="auth-secondary" data-forgot-password disabled>Esqueci minha senha</button>
         </form>
 
         <!-- FORMULÁRIO 2: LINK MÁGICO (OTP) -->
-        <form class="auth-form" data-magic-form style="display:none;">
+        <form class="auth-form" method="post" data-magic-form style="display:none;">
           <div class="input-group">
             <label for="admin-email-magic">E-MAIL DO ADMINISTRADOR</label>
             <input type="email" id="admin-email-magic" name="email" required autocomplete="email" placeholder="seu-email@dominio.com">
@@ -71,7 +74,43 @@
           <p class="auth-hint">Nota: O envio de links por e-mail possui limite por hora no Supabase.</p>
         </form>
 
-        <div class="auth-feedback" data-auth-feedback style="display:none;"></div>
+        <form class="auth-form" method="post" data-recovery-request-form style="display:none;">
+          <div class="input-group">
+            <label for="admin-recovery-email">E-MAIL DA SUA CONTA</label>
+            <input type="email" id="admin-recovery-email" name="email" required autocomplete="email" placeholder="seu-email@dominio.com">
+          </div>
+          <p class="auth-hint">Enviaremos um novo link para você definir sua senha. Use o e-mail da conta administrativa existente.</p>
+          <button type="submit" class="button button-pink auth-submit" data-recovery-request-btn disabled>ENVIAR LINK DE RECUPERAÇÃO</button>
+          <button type="button" class="auth-secondary" data-request-return>Voltar ao login</button>
+        </form>
+
+        <div class="auth-feedback" role="status" aria-live="polite" data-auth-feedback style="display:none;"></div>
+      </div>
+    </section>
+
+    <section class="admin-auth-card" data-recovery-card style="display:none;" aria-labelledby="recovery-title">
+      <div class="auth-box">
+        <div class="auth-icon" aria-hidden="true">✦</div>
+        <small class="kicker">RECUPERAÇÃO DE ACESSO</small>
+        <h1 id="recovery-title" tabindex="-1">Definir nova senha</h1>
+        <p class="auth-desc">Depois de salvar, entre no painel com seu e-mail e a nova senha.</p>
+        <form class="auth-form" method="post" data-recovery-form>
+          <fieldset class="recovery-fields" data-recovery-fields disabled>
+            <div class="input-group">
+              <label for="admin-new-password">NOVA SENHA</label>
+              <input type="password" id="admin-new-password" name="new-password" required minlength="8" autocomplete="new-password" aria-describedby="recovery-password-hint">
+            </div>
+            <div class="input-group">
+              <label for="admin-confirm-password">CONFIRMAR NOVA SENHA</label>
+              <input type="password" id="admin-confirm-password" name="confirm-password" required minlength="8" autocomplete="new-password">
+            </div>
+            <p class="auth-hint" id="recovery-password-hint">Use pelo menos 8 caracteres. A política de segurança da conta também será verificada.</p>
+            <button type="submit" class="button button-pink auth-submit" data-recovery-save>SALVAR NOVA SENHA</button>
+          </fieldset>
+        </form>
+        <div class="auth-feedback" role="status" aria-live="polite" data-recovery-feedback>Validando seu link de recuperação…</div>
+        <button type="button" class="auth-secondary" data-recovery-new-link>Solicitar novo link</button>
+        <button type="button" class="auth-secondary" data-recovery-return>Voltar ao login</button>
       </div>
     </section>
 

@@ -11,7 +11,8 @@ export async function createAdminAuthClient(config,loadSdk) {
   const sdk=await loadSdk();
   if(typeof sdk?.createClient!=='function')throw new Error('SDK de autenticação indisponível. Tente novamente mais tarde.');
   const client=sdk.createClient(config.supabase_url,config.supabase_public_key,{
-    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},
+    // O retorno foi capturado/limpo antes do SDK e será consumido exatamente uma vez.
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,debug:false},
   });
   requireAdminAuth(client);
   return client;

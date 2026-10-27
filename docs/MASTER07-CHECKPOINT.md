@@ -1,5 +1,11 @@
 # Missão Master 07 — checkpoint consolidado
 
+## Correção pontual — recuperação de senha do Admin (27/10/2026)
+
+Autorização específica posterior à Missão13. Configuração pública produtiva conferida: admin_enabled=true, sem variáveis ausentes. Backend ADMIN_EMAIL, permissões, banco, ranking, Memorial, coletor, temporada e catálogo intocados. Retornos de Auth que caem na Home seguem para /admin; credenciais são retiradas da URL antes de carregar o SDK e consumidas uma vez, em memória. Recuperação exige retorno apropriado/evento PASSWORD_RECOVERY, sessão validada pelo Auth e vínculo à mesma sessão antes de updateUser({password}); sessão armazenada ou SIGNED_IN não habilitam o reset. PKCE usa o contexto do verifier do SDK; implicit e token_hash recovery também tratados. Senhas divergentes/fracas, links inválidos/expirados, erros e envio duplicado protegidos. Sucesso encerra a sessão local de recuperação e pede login com a nova senha.
+
+133/133 testes Node22.23.4 e 133/133 Node24.15.0, sem falhas/ignorados. Ensaio de navegador isolado confirmou Home→Admin, URL limpa, validação das senhas, erro de política, bloqueio de link expirado, troca simulada e login posterior; nenhuma senha real alterada. Validação final com NOVO link, senha privada e login real deve ser concluída pessoalmente pelo usuário após a publicação. Não compartilhar o link nem a senha no chat. A atualização não requer migração, mudança no coletor ou nova configuração de Auth.
+
 ## Missão 13 — evidência real e operação publicadas e verificadas (27/10/2026)
 
 Base conferida: site mainad8e1a3/coletor masterf4221c9, limpos e iguais aos remotos. Continuação em codex/mission13. Frontend, Admin/configuração/login, catálogo100, critérios e regras oficiais preservados. **Admin depende da configuração ADMIN_EMAIL pelo Greg; fora do escopo desta rodada.**

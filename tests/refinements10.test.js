@@ -107,7 +107,8 @@ test('fluxo público sem dossiês, texto aprovado e título sem contagem dinâmi
 });
 
 test('Início, status, APIs, catálogo e SQL preservados salvo destino/legenda do CTA obsoleto',async()=>{
-  const home=(await source('public/index.html')).replaceAll('\r\n','\n');
+  const home=(await source('public/index.html')).replaceAll('\r\n','\n')
+    .replace('<meta name="referrer" content="no-referrer"><script src="/auth-return.js"></script>', '');
   assert.equal(home,prior('public/index.html').replace('Ver dossiê do MVP ↗','Ver ranking ↗'));
   for(const file of ['public/styles.css','api/player.js','api/status.js','public/status-view.js','public/achievements-catalog.js','migrations/008_season_schedule.sql'])assert.equal((await source(file)).replaceAll('\r\n','\n'),prior(file));
   const css=(await source('public/identity.css')).replaceAll('\r\n','\n');assert.ok(css.startsWith(prior('public/identity.css')));

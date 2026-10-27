@@ -122,6 +122,11 @@ body.admin-body {
 }
 
 /* AUTH TABS & GOOGLE BUTTON */
+.recovery-fields { display:grid; gap:16px; min-width:0; margin:0; padding:0; border:0; }
+.auth-secondary { border:0; background:transparent; color:var(--pink-soft); font:inherit; font-size:12px; padding:10px 4px; cursor:pointer; }
+.auth-secondary:disabled { opacity:.45; cursor:default; }
+.auth-secondary:focus-visible { outline:2px solid var(--pink-soft); outline-offset:2px; }
+
 .auth-tabs {
   display: flex;
   background: rgba(255, 255, 255, 0.04);

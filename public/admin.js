@@ -1,4 +1,5 @@
 import { AUTH_UNAVAILABLE, requireAdminAuth, createAdminAuthClient } from './admin-auth.js';
+import { createPasswordRecovery, requestPasswordRecovery, RECOVERY_INVALID } from './password-recovery.js';
 import { seasonDeadline } from './season-schedule.js';
 import { mountFooter } from './footer.js';
 mountFooter();
@@ -11,6 +12,10 @@ let supabaseClient = null;
 let currentSession = null;
 let currentDashboardData = null;
 let demoMode = false;
+let passwordRecovery = null;
+let recoveryFlow = false;
+let authBootstrapping = true;
+const authReturn = window.takeAdminAuthReturn?.() || null;
 
 function showToast(message, duration = 3500) {
   const toast = $('[data-toast]');
@@ -54,7 +59,106 @@ async function initSupabase() {
 }
 
 function setAuthControls(enabled) {
-  $$('[data-pwd-login-btn], [data-magic-login-btn]').forEach(button=>{button.disabled=!enabled;});
+  $$('[data-pwd-login-btn], [data-magic-login-btn], [data-forgot-password], [data-recovery-request-btn]').forEach(button=>{button.disabled=!enabled;});
+}
+
+function authFeedback(message, success = false) {
+  const feedback = $('[data-auth-feedback]');
+  feedback.className = `auth-feedback ${success ? 'success' : 'error'}`;
+  feedback.textContent = message;
+  feedback.style.display = 'block';
+}
+
+function showRecovery(message = 'Validando seu link de recuperação…') {
+  recoveryFlow = true;
+  currentSession = null;
+  $('[data-auth-card]').style.display = 'none';
+  $('[data-admin-dashboard]').style.display = 'none';
+  $('[data-admin-session]').style.display = 'none';
+  $('[data-recovery-card]').style.display = 'grid';
+  $('[data-recovery-fields]').disabled = passwordRecovery?.state !== 'ready';
+  if (passwordRecovery?.state === 'invalid') $('[data-recovery-form]').reset();
+  const busy = message.startsWith('Validando') || ['validating', 'saving'].includes(passwordRecovery?.state);
+  $('[data-recovery-return]').disabled = busy;
+  $('[data-recovery-new-link]').disabled = busy;
+  const feedback = $('[data-recovery-feedback]');
+  feedback.textContent = message;
+  feedback.className = `auth-feedback ${passwordRecovery?.state === 'ready' ? 'success' : 'error'}`;
+  $('#recovery-title').focus();
+}
+
+function showLogin(requestLink = false) {
+  passwordRecovery?.revoke();
+  recoveryFlow = false;
+  $('[data-recovery-card]').style.display = 'none';
+  $('[data-recovery-form]').reset();
+  $('[data-recovery-fields]').disabled = true;
+  $('[data-auth-card]').style.display = 'grid';
+  $('[data-admin-dashboard]').style.display = 'none';
+  $('.auth-tabs').style.display = requestLink ? 'none' : 'flex';
+  $('[data-password-form]').style.display = requestLink ? 'none' : 'grid';
+  $('[data-magic-form]').style.display = 'none';
+  $('[data-recovery-request-form]').style.display = requestLink ? 'grid' : 'none';
+  $$('.auth-tab-btn').forEach(btn => btn.classList.toggle('is-active', btn.dataset.tab === 'password'));
+  $('[data-auth-feedback]').style.display = 'none';
+  if (requestLink) $('#admin-recovery-email').focus();
+}
+
+function setupRecoveryHandlers() {
+  $('[data-forgot-password]').addEventListener('click', () => {
+    $('#admin-recovery-email').value = $('#admin-email-pwd').value;
+    showLogin(true);
+  });
+  $('[data-request-return]').addEventListener('click', () => showLogin());
+  $('[data-recovery-return]').addEventListener('click', () => showLogin());
+  $('[data-recovery-new-link]').addEventListener('click', () => showLogin(true));
+  $('[data-recovery-request-form]').addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = $('[data-recovery-request-btn]');
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      await requestPasswordRecovery(requireAdminAuth(supabaseClient), $('#admin-recovery-email').value.trim(), window.location.origin);
+      authFeedback('Se houver uma conta com esse e-mail, você receberá um novo link de recuperação. Abra o e-mail mais recente.', true);
+    } catch (error) { authFeedback(error.message); }
+    finally { button.disabled = !supabaseClient?.auth; }
+  });
+  $('[data-recovery-form]').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (passwordRecovery?.state !== 'ready') return;
+    $('[data-recovery-fields]').disabled = true;
+    $('[data-recovery-return]').disabled = true;
+    $('[data-recovery-new-link]').disabled = true;
+    try {
+      const result = await passwordRecovery.save($('#admin-new-password').value, $('#admin-confirm-password').value);
+      $('[data-recovery-form]').reset();
+      if (result.signedOut) {
+        showLogin();
+        authFeedback('Senha atualizada com sucesso. Entre com seu e-mail e a nova senha.', true);
+        $('#admin-email-pwd').focus();
+      } else {
+        showRecovery('Senha atualizada. Use “Voltar ao login” para entrar com a nova senha.');
+      }
+    } catch (error) { showRecovery(error.message); }
+    finally { $('[data-recovery-fields]').disabled = passwordRecovery?.state !== 'ready'; }
+  });
+}
+
+async function displaySession(session) {
+  if (recoveryFlow || authBootstrapping) return;
+  currentSession = session;
+  if (!session) {
+    $('[data-auth-card]').style.display = 'grid';
+    $('[data-admin-dashboard]').style.display = 'none';
+    $('[data-admin-session]').style.display = 'none';
+    return;
+  }
+  try {
+    const data = await fetchDashboardData();
+    if (!recoveryFlow && currentSession === session) renderDashboard(data);
+  } catch {
+    if (!recoveryFlow) authFeedback('Sessão não autorizada ou indisponível. Entre novamente com a conta administrativa.');
+  }
 }
 
 async function requestAdminApi(action, payload = {}) {
@@ -446,21 +550,10 @@ function setupDashboardActions() {
   });
 }
 
-function parseHashParams() {
-  const hash = window.location.hash.substring(1);
-  if (!hash) return null;
-  const params = new URLSearchParams(hash);
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  if (accessToken) {
-    return { accessToken, refreshToken };
-  }
-  return null;
-}
-
 async function main() {
   // Captura submit antes de qualquer await; falhas de bootstrap não enviam formulários nativos.
   setupAuthHandlers();
+  setupRecoveryHandlers();
   setupDashboardActions();
   setAuthControls(false);
   const publicConfig = await initSupabase();
@@ -469,6 +562,7 @@ async function main() {
   const resetButton = $('[data-action-reset-baseline]');
   if (resetButton) { resetButton.disabled = true; resetButton.title = 'Reset bloqueado até revisão transacional e autorização específica.'; }
   if (publicConfig.demo) {
+    if (authReturn) { showRecovery('Recuperação indisponível nesta demonstração local.'); return; }
     const response = await fetch('/api/admin');
     if (!response.ok) throw new Error('Dados administrativos de demonstração indisponíveis.');
     renderDashboard(await response.json());
@@ -490,63 +584,31 @@ async function main() {
   }
 
   setAuthControls(true);
-
-  // Trata tokens que chegam no hash da URL (Magic Link redirecionado)
-  const hashTokens = parseHashParams();
-  if (hashTokens?.accessToken) {
-    try {
-      const { data, error } = await supabaseClient.auth.setSession({
-        access_token: hashTokens.accessToken,
-        refresh_token: hashTokens.refreshToken || '',
-      });
-      if (!error && data?.session) {
-        currentSession = data.session;
-        // Limpa o hash da URL para manter a barra limpa
-        window.history.replaceState(null, '', window.location.pathname);
-      }
-    } catch (e) {
-      console.warn('Erro ao processar tokens da URL:', e);
+  passwordRecovery = createPasswordRecovery({ auth: supabaseClient.auth, supabaseUrl: publicConfig.supabase_url });
+  // O callback é síncrono: chamadas ao SDK ocorrem fora do lock interno do Auth.
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      showRecovery();
+      setTimeout(() => passwordRecovery.handleAuthEvent(event, session)
+        .then(() => showRecovery('Link validado. Cadastre e confirme sua nova senha.'))
+        .catch(() => showRecovery(RECOVERY_INVALID)), 0);
+      return;
     }
-  }
-
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (session) {
-    currentSession = session;
-    try {
-      const dashboardData = await fetchDashboardData();
-      renderDashboard(dashboardData);
-    } catch (err) {
-      console.warn('Sessão não autorizada ou erro:', err);
-      $('[data-auth-card]').style.display = 'grid';
-      $('[data-admin-dashboard]').style.display = 'none';
-      const fb = $('[data-auth-feedback]');
-      if (fb) {
-        fb.className = 'auth-feedback error';
-        fb.textContent = err.message;
-        fb.style.display = 'block';
-      }
-    }
-  } else {
-    $('[data-auth-card]').style.display = 'grid';
-    $('[data-admin-dashboard]').style.display = 'none';
-  }
-
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (session) {
-      currentSession = session;
-      try {
-        const dashboardData = await fetchDashboardData();
-        renderDashboard(dashboardData);
-      } catch (err) {
-        showToast(err.message);
-      }
-    } else {
-      currentSession = null;
-      $('[data-auth-card]').style.display = 'grid';
-      $('[data-admin-dashboard]').style.display = 'none';
-      $('[data-admin-session]').style.display = 'none';
-    }
+    if (event === 'SIGNED_OUT' && passwordRecovery.state !== 'complete') passwordRecovery.revoke();
+    if (!authBootstrapping && !recoveryFlow) setTimeout(() => displaySession(session), 0);
   });
+  if (authReturn) showRecovery();
+  let returned;
+  try { returned = await passwordRecovery.consumeReturn(authReturn); }
+  catch { authBootstrapping = false; showRecovery(RECOVERY_INVALID); return; }
+  authBootstrapping = false;
+  if (returned.kind === 'recovery') { showRecovery('Link validado. Cadastre e confirme sua nova senha.'); return; }
+  // Um retorno de login comum não mantém a tela de recuperação aberta.
+  recoveryFlow = false;
+  $('[data-recovery-card]').style.display = 'none';
+  $('[data-auth-card]').style.display = 'grid';
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  await displaySession(session);
 }
 
 main().catch((error) => { setAuthControls(false); const feedback = $('[data-auth-feedback]'); if (feedback) { feedback.textContent = error.message; feedback.style.display = 'block'; } });

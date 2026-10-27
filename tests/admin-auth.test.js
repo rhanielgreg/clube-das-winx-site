@@ -24,11 +24,11 @@ test('falha do CDN/SDK ou cliente inválido não se converte em erro de senha ou
   await assert.rejects(createAdminAuthClient(config,async()=>({createClient:()=>null})),{message:AUTH_UNAVAILABLE});
 });
 
-test('cliente válido mantém sessão, refresh e detecção do link, sem alterar autorização',async()=>{
+test('cliente válido mantém sessão e refresh; retorno é consumido explicitamente sem debug',async()=>{
   const auth={signInWithPassword:async()=>({data:{session:null}})};
   const client=await createAdminAuthClient(config,async()=>({createClient:(url,key,options)=>{
     assert.equal(url,config.supabase_url);assert.equal(key,config.supabase_public_key);
-    assert.deepEqual(options,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    assert.deepEqual(options,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,debug:false}});
     return {auth};
   }}));
   assert.equal(requireAdminAuth(client),auth);
