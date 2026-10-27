@@ -1,5 +1,5 @@
 -- Export lógico SOMENTE LEITURA do domínio public da aplicação.
--- Compatível com as migrações 001–010. Salvar fora do Git com ACL local restrita.
+-- Compatível com as migrações 001–011. Salvar fora do Git com ACL local restrita.
 -- Preservar o texto bruto do resultado (textContent/export), não innerText:
 -- a renderização visual pode colapsar espaços de definições e dados.
 -- Não é backup de auth/storage. O commit inicial da 08 contém o export pré-expansão.

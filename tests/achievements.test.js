@@ -8,7 +8,7 @@ import { metricUnits,archiveMetrics } from '../lib/life-metrics.js';
 import { visibleAchievements,medalSvg } from '../public/achievement-view.js';
 import { achievementPanel } from '../public/achievement-panel.js';
 const world='f0000000-0000-4000-8000-000000000001',account='a'.repeat(64),life='b'.repeat(64);
-const metric=(key,value,coverage='complete_life')=>({value,unit:metricUnits[key],validated:true,scope:'life',coverage});
+const metric=(key,value,coverage='complete_life')=>({value,unit:metricUnits[key],validated:true,scope:'life',coverage,observed_at:'2026-10-26T00:00:00Z'});
 const metrics=(values)=>Object.fromEntries(Object.entries(values).map(([k,v])=>[k,metric(k,v)]));
 async function database(){
  const db=new PGlite();
@@ -57,7 +57,7 @@ test('três marcos de mil kills independem dos outros métodos e aceitam cobertu
 test('cada um dos 100 critérios possui caso positivo e fronteira que não concede',()=>{
  const categoryKeys=['kills_axe','kills_blunt','kills_small_blunt','kills_long_blade','kills_small_blade','kills_spear','kills_unarmed','kills_firearm','kills_vehicle','kills_other'];
  for(const definition of achievementCatalog){
-  const evidence={identity_status:'verified_source_life',alive:true,metrics:{},trusted_archive:{}};
+  const evidence={identity_status:'verified_source_life',alive:true,metrics:{},trusted_archive:{},last_observed_at:'2026-10-26T00:00:00Z'};
   const assign=(condition,value)=>{
    if(condition.metric==='alive')evidence.alive=value===1;
    else if(condition.metric==='categories_with_100_kills')categoryKeys.forEach((key,index)=>{evidence.metrics[key]=metric(key,index<value?100:0);});
@@ -77,7 +77,7 @@ test('motor não concede sem identidade, unidade, escopo ou cobertura; UI conta 
  for(const bad of [{value:10000,unit:'meters',validated:true,scope:'life'},{value:'10000',unit:'count',validated:true,scope:'life'},{value:true,unit:'count',validated:true,scope:'life'}])assert.equal(evaluateAchievements({...evidence,metrics:{kills_total:bad}}).length,0);
  const view=visibleAchievements(unlocked,achievementCatalog);assert.equal(view.total,3);assert.deepEqual(view.visible.map(a=>a.id),['exterminador.gold']);
  assert.ok(medalSvg(view.visible[0]).includes('viewBox="0 0 64 72"'));
- const partial={identity_status:'verified_source_life',metrics:metrics({survival_world_days:30,kills_total:100,kills_firearm:0}),alive:true};
+ const partial={identity_status:'verified_source_life',metrics:metrics({survival_world_days:30,kills_total:100,kills_firearm:0}),alive:true,last_observed_at:'2026-10-26T00:00:00Z'};
  assert.ok(evaluateAchievements(partial).includes('mes-sem-tiros'));
  partial.metrics.kills_firearm.coverage='observed_lower_bound';assert.ok(!evaluateAchievements(partial).includes('mes-sem-tiros'));
 });

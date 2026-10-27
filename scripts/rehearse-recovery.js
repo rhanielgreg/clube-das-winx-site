@@ -50,7 +50,7 @@ export async function rehearseRecovery(backup,{migrations=[]}={}) {
    if(t.force_rls)sql.push(`alter table ${target} force row level security;`);
    sql.push(...grants('table',target,t.grants));
   }
-  for(const f of backup.functions) sql.push(f.definition+';',...grants('function','public.'+f.signature,f.grants));
+  for(const f of backup.functions) sql.push(f.definition+';',...grants('function',f.signature.startsWith('public.')?f.signature:'public.'+f.signature,f.grants));
   for(const t of backup.tables)sql.push(...t.triggers.map(v=>v+';'));
   for(const s of backup.sequences) {
    const target='public.'+ident(s.sequencename);
@@ -79,10 +79,13 @@ export async function rehearseRecovery(backup,{migrations=[]}={}) {
    // Role OIDs in ACL strings differ locally; named grant lists are authoritative.
    // PG18 exposes NOT NULL as pg_constraint rows; PG17 exports it through
    // attnotnull only. Compare that column flag, not the redundant PG18 rows.
-   const canonical=(v,key='')=>Array.isArray(v)?(['grants','functions','tables','constraints','indexes','triggers','default_privileges','sequences'].includes(key)
-    ?(key==='constraints'?v.filter(x=>x.type!=='n'):v).map(x=>canonical(x)).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))
-    :v.map(x=>canonical(x)))
-    :v&&typeof v==='object'?Object.fromEntries(Object.keys(v).filter(k=>k!=='acl').sort().map(k=>[k,canonical(v[k],k)])):v;
+   const canonical=(v,key='',context='')=>Array.isArray(v)?(['grants','functions','tables','constraints','indexes','triggers','default_privileges','sequences'].includes(key)
+    ?(key==='constraints'?v.filter(x=>x.type!=='n'):v).map(x=>canonical(x,'',key||context)).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))
+    :v.map(x=>canonical(x,'',key||context)))
+    :v&&typeof v==='object'?Object.fromEntries(Object.keys(v).filter(k=>k!=='acl').sort().map(k=>[k,canonical(v[k],k,context)]))
+    :typeof v==='string'&&key==='signature'?v.replace(/^public\./,'')
+    :typeof v==='string'&&key==='definition'&&context==='constraints'?v.replace(/REFERENCES public\./g,'REFERENCES ')
+    :typeof v==='string'&&context==='triggers'?v.replace(/EXECUTE FUNCTION public\./g,'EXECUTE FUNCTION ').replace(/ ON public\./,' ON '):v;
    const normalize=v=>JSON.stringify(canonical(v,key));
    if(normalize(restored[key])!==normalize(backup[key])) {
     const a=canonical(restored[key],key),b=canonical(backup[key],key);

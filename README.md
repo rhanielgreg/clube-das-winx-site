@@ -4,6 +4,12 @@ Portal gamer hospedável na Vercel, com status real A2S, comandos Discord via In
 
 Este repositório contém o site e as APIs da Vercel. O coletor/backend Railway é mantido separadamente em [clube-das-winx-collector](https://github.com/rhanielgreg/clube-das-winx-collector). A pasta local `collector/` não faz parte deste repositório.
 
+## Missão 13 — continuidade e operação
+
+Migração011 adiciona evidência observacional privada nas execuções, RPC privada de exportação consistente e saúde agregada em `/api/collection-health`. Não habilita vidas ou medalhas. Publicar o novo coletor somente depois de011. A investigação real e os SHAs/validações estão no [checkpoint](docs/MASTER07-CHECKPOINT.md). Admin depende da configuração `ADMIN_EMAIL` pelo Greg; fora do escopo desta rodada.
+
+Backup manual preparado: `node scripts/backup-application.js CAMINHO_ABSOLUTO_PROTEGIDO`. O executor privado precisa receber `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` por configuração segura, fora do Git/navegador. O destino deve existir, estar fora de qualquer worktree e ter permissões privadas; no Windows a ACL é conferida. A ferramenta recebe uma exportação consistente do domínio public por RPC privada, ensaia restauração isolada e grava arquivo/manifesto com checksum. Recusa backup sem prova de recuperação. Não inclui Auth/Storage/PITR. Recomenda retenção7diários/4semanais/12mensais, sem exclusão automática. **Nenhuma periodicidade foi agendada**; falta provisionar o executor com credencial segura e agenda, sem contratar armazenamento novo. Os ensaios desta missão usaram a exportação real por SQL e adaptação offline somente do transporte REST, pois não se extraíram credenciais para o terminal.
+
 ## Missão 12 — integração técnica controlada
 
 Continuação do dashboard publicado, com integridade de snapshots/vidas, reconciliação explícita de kills, API contextual de conquistas e recuperação ensaiada. [Estado técnico e evidências](docs/MISSION12.md) · [Revisão das 100 conquistas e proposta visual](docs/MISSION12-ACHIEVEMENTS.md). Coorte life-v1 e apresentação definitiva das medalhas continuam condicionadas às provas/aprovação descritas; nenhum critério foi alterado. O [checkpoint consolidado](docs/MASTER07-CHECKPOINT.md) registra a publicação efetivamente verificada.
