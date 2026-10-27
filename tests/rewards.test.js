@@ -121,6 +121,18 @@ test('PostgreSQL: premiações imutáveis, idempotência, ACLs, elegibilidade e 
    const admin=await value(db,'select get_service_rewards_v1()');assert.equal(admin.seasons[0].draw.reward_snapshot.items.length,2);
    assert.equal(admin.seasons[0].draw.certification_snapshot.official_result.certification,'champion');
   });
+  await scenario('campeão vivo de temporada antiga continua disponível sem prazo máximo de sorteio',async()=>{
+   const winner=await setupWinner(db);
+   await db.query("select set_config('winx.monthly.operation','reconcile',true)");
+   for(let n=2;n<=38;n++){
+    const start=new Date(Date.UTC(2010,n,1,3)).toISOString(),end=new Date(Date.UTC(2010,n+1,1,3)).toISOString();
+    const id=await value(db,"insert into ranking_seasons(name,slug,status,started_at,ended_at,scheduled_end_at)values('Histórico sintético',$1,'closed',$2,$3,$3)returning id",['fixture-history-'+n,start,end]);
+    await db.query("insert into season_cycles_v2(season_id,season_number,starts_at,ends_at,certification,closed_at)values($1,$2,$3,$4,'pending_certification',now())",[id,n,start,end]);
+   }
+   const dashboard=await value(db,'select get_service_rewards_v1()');
+   assert.equal(dashboard.seasons.length,38);assert.equal(dashboard.seasons.find(s=>s.season_id===firstSeason).eligibility.eligible,true);
+   assert.equal((await draw(db,winner)).persisted,true);
+  });
   await scenario('morte depois do sorteio cancela sem transferir para nova vida',async()=>{
    const winner=await setupWinner(db);await draw(db,winner);await db.query('update life_identities set alive=false where id=$1',[winner.life]);
    assert.equal(await value(db,'select state from reward_delivery_state_v1'),'forfeited');assert.equal(await value(db,'select count(*) from season_reward_draws_v1'),1);

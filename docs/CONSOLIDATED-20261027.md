@@ -34,6 +34,7 @@ Admin recebe elegibilidade, catálogo, probabilidades, resultado, histórico, c�
 - 014: contratos antigos serializados/bloqueados, prova de geração e renomeação auditada.
 - 015: exportação privada completa. Corrigida omissão dos dados das tabelas novas pelo exportador antigo; nenhuma edição retroativa de migração aplicada.
 - 016: catálogo de prêmios, sorteios imutáveis, componentes, máquina de entrega e eventos append-only. Sem chamadas ao jogo.
+- 017: consulta administrativa sem janela de36 temporadas; remove prazo indireto para sorteio antigo, preservando integralmente o contrato e os dados.
 
 012–015 foram aplicadas com flags inicialmente desligadas. Backup pós-instalação24 tabelas foi restaurado com equivalência de dados, metadados e grants; depois foram publicados os consumidores e ativados calendário/medalhas em **27/10/2026 17h18m22 BRT**. T1 preserva nome/início real e permanece ativa até01/11/2026 00h00 BRT.
 
@@ -45,7 +46,7 @@ Backups e fontes estão no diretório privado protegido já existente, fora do G
 
 ## 4. Testes
 
-187/187 na suíte completa Node22.23.4 e187/187 Node24.15.0; 39/39 Python. Comandos: `node --test`, Node22 existente com `--test`, `python -B -m unittest discover -s ../clube-das-winx-collector -p test*.py`, `npm run test:catalog`, `git diff --check` e ensaios `scripts/rehearse-recovery.js`.
+188/188 na suíte completa Node22.23.4 e188/188 Node24.15.0; 39/39 Python. Comandos: `node --test`, Node22 existente com `--test`, `python -B -m unittest discover -s ../clube-das-winx-collector -p test*.py`, `npm run test:catalog`, `git diff --check` e ensaios `scripts/rehearse-recovery.js`.
 
 Calendário civil, fronteiras, repetição, indisponibilidade, empate, Apocalipse/pendência, baseline, vidas sucessivas, Global e ACLs cobertos. Roleta: distribuição determinística45/30/20/4/1, pesos internos, catálogo incompleto, prêmio inválido, duplo clique/abas/timeout, persistência, imutabilidade, morte, identidade errada, coleta defasada, pacote parcial e reconciliação. APIs rejeitam acesso sem autorização e ocultam referências privadas da leitura pública.
 
@@ -55,7 +56,7 @@ Navegador isolado executou a API real e PostgreSQL com campeão sintético, iden
 
 Primeira etapa confirmada: site `f1c5919e3770df66f5e2bb76e1553f1df7773070`, Vercel `2qtEbHWzzQUHSNcFdYLwGZMmvzMx`; coletor `8a376bc2c67bd2ba1855294b1d844da2f9a771a2`, Railway `a1757f34-0832-4ba9-8383-4787f1eb4a47`, master/cron5min. Logs17h25 e17h30: autenticação SFTP normal e cinco personagens sincronizados após ativação.
 
-A etapa de premiações sucede essa base. O checkpoint registra a migração/deployment efetivamente confirmados. O SHA corrente é exposto em `/api/release`; um push/build sozinho não é usado como prova de produção.
+A etapa de premiações foi publicada em `ff0a481813ffa3e80f4180f02907d57083fc23b9`, Vercel `CfBw1PQx9Dfm7sSSHmHJYWAR1vuQ`, e validada no domínio original: páginas200, APIs atuais, saúde healthy, rota administrativa403 anônima, SQL/backup/backend/fixtures404 e seis assets equivalentes ao Git. Admin autenticado validado somente em leitura: catálogo ativo, sorteio de T1 e encerramento legado desabilitados, sem erros de console. 017 aplicada depois e confirmada por consulta/ACL; teste com38 temporadas aprovado. O checkpoint registra essa revisão sucessora. O SHA corrente é exposto em `/api/release`; um push/build sozinho não é usado como prova de produção.
 
 ## 6. Catálogo e entrega
 
@@ -84,8 +85,8 @@ Falta namespace inequívoco da geração do mundo e ponte verificável dos hist�
 
 Sem coorte verificada, Global não fabrica totais, medalhas não recebem progresso real e reconhecimentos do Memorial não proclamam recordistas. O motor não retroativo está implantado, mas nenhum baseline/desbloqueio produtivo existe. A virada calendárica está ativa; um resultado poderá permanecer pendente se a fonte não certificar população, sobrevivência e competência temporal. A roleta respeita esse bloqueio.
 
-Não há campeão oficial a sortear enquanto T1 está aberta. Nenhum sorteio/entrega real deve ser produzido só para teste. Login privado não deve ser solicitado no chat; se a sessão Admin disponível não persistir, o usuário deve entrar pessoalmente.
+Não há campeão oficial a sortear enquanto T1 está aberta. Nenhum sorteio/entrega real foi produzido só para teste. A sessão Admin disponível foi validada, sem solicitar senha nem alterar autenticação.
 
 ## 8. Veredito por componente
 
-Calendário, contrato de resultado, abas, catálogo28, vitrines e guardas: implementados/publicados na primeira etapa. Certificação oficial/Global com totais/medalhas reais/recordistas: aguardam evidência, não são apresentados como operacionais com dados inexistentes. Roleta e registro manual: implementados/testados nesta continuação, com publicação efetiva registrada no checkpoint. Entrega automática e veículos: não habilitados por ausência dos controles necessários; não há efeitos externos executados.
+Calendário, contrato de resultado, abas, catálogo28, vitrines e guardas: implementados/publicados na primeira etapa. Certificação oficial/Global com totais/medalhas reais/recordistas: aguardam evidência, não são apresentados como operacionais com dados inexistentes. Roleta e registro manual: implementados/testados/publicados; o primeiro uso real depende de campeão/vida certificados. Entrega automática e veículos: não habilitados por ausência dos controles necessários; não há efeitos externos executados.
