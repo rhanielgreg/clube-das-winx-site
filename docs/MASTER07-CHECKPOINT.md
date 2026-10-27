@@ -1,5 +1,13 @@
 # Missão Master 07 — checkpoint consolidado
 
+## Hotfix — sessões persistentes e envio único de recuperação (27/10/2026)
+
+Base mainf2cfcd8 limpa e igual ao remoto. Causa confirmada no código: após rejeição pela API, displaySession apenas mostrava erro, sem remover a sessão recusada; eventos repetidos restauravam o mesmo token sem deduplicação. O envio de recuperação reabilitava o botão após qualquer resposta e não guardava o pedido entre recargas. Agora sessões autorizadas continuam persistentes, consultas concorrentes são compartilhadas e eventos passivos têm cache curto; recusas comprovadas limpam somente a sessão local correspondente, silenciosamente. Falhas transitórias não apagam credenciais. Geração da consulta e token atual protegem nova sessão/recuperação de respostas antigas; nenhum logout é feito durante recovery. Backend/ADMIN_EMAIL inalterados.
+
+Pedido de recuperação protegido por estado em memória, registro local sem email/credenciais e Web Lock exclusivo sem fila. Pending/sent/429/falha incerta sobrevivem a F5; nova tentativa exige liberar manualmente o botão e depois enviar. Retry-After só vem do cabeçalho real de /auth/v1/recover; sem cabeçalho, não há contagem de desbloqueio inventada. Não há reenvio automático. Armazenamento/Web Locks indisponíveis bloqueiam apenas esse envio, mantendo login disponível.
+
+148/148 Node22.23.4 e 148/148 Node24.15.0, zero falhas/ignorados. Navegador isolado confirmou sessão válida/rejeitada, eventos repetidos/F5, um único envio simulado, sucesso persistido após reload, 429 sem contador e recovery válido sem logout. Nenhum e-mail produtivo enviado nem senha redefinida; login/redefinição reais dependem do teste privado do usuário. Home, Ranking, Servidor, Memorial, coletor, banco/rate limits/políticas, temporadas, catálogo e credenciais preservados.
+
 ## Correção pontual — recuperação de senha do Admin (27/10/2026)
 
 Autorização específica posterior à Missão13. Configuração pública produtiva conferida: admin_enabled=true, sem variáveis ausentes. Backend ADMIN_EMAIL, permissões, banco, ranking, Memorial, coletor, temporada e catálogo intocados. Retornos de Auth que caem na Home seguem para /admin; credenciais são retiradas da URL antes de carregar o SDK e consumidas uma vez, em memória. Recuperação exige retorno apropriado/evento PASSWORD_RECOVERY, sessão validada pelo Auth e vínculo à mesma sessão antes de updateUser({password}); sessão armazenada ou SIGNED_IN não habilitam o reset. PKCE usa o contexto do verifier do SDK; implicit e token_hash recovery também tratados. Senhas divergentes/fracas, links inválidos/expirados, erros e envio duplicado protegidos. Sucesso encerra a sessão local de recuperação e pede login com a nova senha.

@@ -1,5 +1,7 @@
-import { AUTH_UNAVAILABLE, requireAdminAuth, createAdminAuthClient } from './admin-auth.js';
+import { AUTH_UNAVAILABLE, requireAdminAuth, createAdminAuthClient, adminAuthStorageKey } from './admin-auth.js';
 import { createPasswordRecovery, requestPasswordRecovery, RECOVERY_INVALID } from './password-recovery.js';
+import { createAdminSession, forgetStoredAdminSession, retryAfterAt } from './admin-session.js';
+import { createRecoveryRequest } from './recovery-request.js';
 import { seasonDeadline } from './season-schedule.js';
 import { mountFooter } from './footer.js';
 mountFooter();
@@ -15,6 +17,10 @@ let demoMode = false;
 let passwordRecovery = null;
 let recoveryFlow = false;
 let authBootstrapping = true;
+let adminSession = null;
+let recoveryRequest = null;
+let recoveryResponse = null;
+let recoveryWaitTimer = null;
 const authReturn = window.takeAdminAuthReturn?.() || null;
 
 function showToast(message, duration = 3500) {
@@ -54,12 +60,38 @@ async function initSupabase() {
       });
     }
     return window.supabase;
-  });
+  },{onRecoveryResponse:response=>{recoveryResponse={status:response.status,retryAt:retryAfterAt(response.headers)};}});
   return config;
 }
 
 function setAuthControls(enabled) {
   $$('[data-pwd-login-btn], [data-magic-login-btn], [data-forgot-password], [data-recovery-request-btn]').forEach(button=>{button.disabled=!enabled;});
+  renderRecoveryRequest();
+}
+
+function renderRecoveryRequest() {
+  if (!recoveryRequest) return;
+  const state = recoveryRequest.view();
+  clearTimeout(recoveryWaitTimer);
+  if (state.retryAt) recoveryWaitTimer = setTimeout(renderRecoveryRequest, Math.min(2147483647,Math.max(1,state.retryAt-Date.now())));
+  const button = $('[data-recovery-request-btn]');
+  button.disabled = !supabaseClient?.auth || state.blocked;
+  button.textContent = ({sending:'ENVIANDO…', pending:'PEDIDO JÁ INICIADO', sent:'LINK SOLICITADO',
+    rate_limited:'ENVIO BLOQUEADO', failed:'ENVIO A CONFERIR', storage_unavailable:'ENVIO INDISPONÍVEL'})[state.phase] || 'ENVIAR LINK DE RECUPERAÇÃO';
+  const again = $('[data-recovery-request-again]');
+  again.hidden = !state.blocked || state.phase === 'sending' || state.phase === 'storage_unavailable';
+  again.disabled = !state.canRearm;
+  let message = ({sending:'Solicitando o link. Aguarde, sem reenviar.',
+    pending:'Um pedido já foi iniciado neste navegador. Confira sua caixa de entrada antes de preparar outra tentativa.',
+    sent:'Solicitação enviada. Se houver uma conta com esse e-mail, você receberá o link. Confira a caixa de entrada e o spam; abra o e-mail mais recente.',
+    rate_limited:'O Supabase informou limite de envios. Nenhuma tentativa automática será feita. Aguarde antes de preparar uma nova solicitação.',
+    failed:'Não foi possível confirmar o envio. Confira sua caixa de entrada antes de tentar de novo. Nenhum reenvio automático será feito.',
+    storage_unavailable:'Não foi possível ativar a proteção local contra envios duplicados. Use um navegador com armazenamento local e Web Locks disponíveis.'})[state.phase];
+  if (state.retryAt) message += ` O servidor pediu aguardar até ${formatDate(new Date(state.retryAt).toISOString())}.`;
+  const feedback = $('[data-recovery-request-feedback]');
+  feedback.style.display = message ? 'block' : 'none';
+  feedback.className = `auth-feedback ${state.phase === 'sent' ? 'success' : ''}`;
+  feedback.textContent = message || '';
 }
 
 function authFeedback(message, success = false) {
@@ -71,6 +103,7 @@ function authFeedback(message, success = false) {
 
 function showRecovery(message = 'Validando seu link de recuperação…') {
   recoveryFlow = true;
+  adminSession?.suspend();
   currentSession = null;
   $('[data-auth-card]').style.display = 'none';
   $('[data-admin-dashboard]').style.display = 'none';
@@ -90,6 +123,7 @@ function showRecovery(message = 'Validando seu link de recuperação…') {
 function showLogin(requestLink = false) {
   passwordRecovery?.revoke();
   recoveryFlow = false;
+  adminSession?.resume();
   $('[data-recovery-card]').style.display = 'none';
   $('[data-recovery-form]').reset();
   $('[data-recovery-fields]').disabled = true;
@@ -102,6 +136,7 @@ function showLogin(requestLink = false) {
   $$('.auth-tab-btn').forEach(btn => btn.classList.toggle('is-active', btn.dataset.tab === 'password'));
   $('[data-auth-feedback]').style.display = 'none';
   if (requestLink) $('#admin-recovery-email').focus();
+  renderRecoveryRequest();
 }
 
 function setupRecoveryHandlers() {
@@ -114,15 +149,10 @@ function setupRecoveryHandlers() {
   $('[data-recovery-new-link]').addEventListener('click', () => showLogin(true));
   $('[data-recovery-request-form]').addEventListener('submit', async event => {
     event.preventDefault();
-    const button = $('[data-recovery-request-btn]');
-    if (button.disabled) return;
-    button.disabled = true;
-    try {
-      await requestPasswordRecovery(requireAdminAuth(supabaseClient), $('#admin-recovery-email').value.trim(), window.location.origin);
-      authFeedback('Se houver uma conta com esse e-mail, você receberá um novo link de recuperação. Abra o e-mail mais recente.', true);
-    } catch (error) { authFeedback(error.message); }
-    finally { button.disabled = !supabaseClient?.auth; }
+    if ($('[data-recovery-request-btn]').disabled || !recoveryRequest) return;
+    await recoveryRequest.request($('#admin-recovery-email').value.trim());
   });
+  $('[data-recovery-request-again]').addEventListener('click', async () => { await recoveryRequest?.rearm(); });
   $('[data-recovery-form]').addEventListener('submit', async event => {
     event.preventDefault();
     if (passwordRecovery?.state !== 'ready') return;
@@ -144,21 +174,9 @@ function setupRecoveryHandlers() {
   });
 }
 
-async function displaySession(session) {
-  if (recoveryFlow || authBootstrapping) return;
-  currentSession = session;
-  if (!session) {
-    $('[data-auth-card]').style.display = 'grid';
-    $('[data-admin-dashboard]').style.display = 'none';
-    $('[data-admin-session]').style.display = 'none';
-    return;
-  }
-  try {
-    const data = await fetchDashboardData();
-    if (!recoveryFlow && currentSession === session) renderDashboard(data);
-  } catch {
-    if (!recoveryFlow) authFeedback('Sessão não autorizada ou indisponível. Entre novamente com a conta administrativa.');
-  }
+async function displaySession(session, options) {
+  if (recoveryFlow || authBootstrapping) return false;
+  return adminSession?.restore(session, options);
 }
 
 async function requestAdminApi(action, payload = {}) {
@@ -182,17 +200,20 @@ async function requestAdminApi(action, payload = {}) {
   return data;
 }
 
-async function fetchDashboardData() {
-  if (!demoMode && !currentSession?.access_token) return;
+async function fetchDashboardData(session = currentSession) {
+  if (!demoMode && !session?.access_token) return;
 
   const response = await fetch('/api/admin', {
     method: 'GET',
-    headers: demoMode ? {} : { authorization: `Bearer ${currentSession.access_token}` },
+    headers: demoMode ? {} : { authorization: `Bearer ${session.access_token}` },
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || 'Falha ao buscar dados administrativos.');
+    throw Object.assign(new Error('Falha ao buscar dados administrativos.'), {
+      authRejected: response.status === 401 || response.status === 403 &&
+        ['Sessão inválida ou expirada.', 'Acesso administrativo não autorizado.', 'Token de autorização ausente.'].includes(data.error),
+    });
   }
   return data;
 }
@@ -315,6 +336,7 @@ function setupAuthHandlers() {
   if (pwdForm) {
     pwdForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (pwdBtn.disabled) return;
       const email = $('#admin-email-pwd').value.trim();
       const password = $('#admin-password-input').value;
       if (!email || !password) return;
@@ -331,13 +353,8 @@ function setupAuthHandlers() {
 
         if (error) throw error;
 
-        currentSession = data.session;
-        feedback.className = 'auth-feedback success';
-        feedback.textContent = 'Autenticado com sucesso! Carregando painel...';
-        feedback.style.display = 'block';
-
-        const dashboardData = await fetchDashboardData();
-        renderDashboard(dashboardData);
+        const authorized = await displaySession(data.session, { interactive: true });
+        if (!authorized) authFeedback('Não foi possível autorizar o painel. Confira a conta administrativa e tente novamente.');
       } catch (err) {
         feedback.className = 'auth-feedback error';
         feedback.textContent = err.message || 'Credenciais inválidas. Verifique seu e-mail e senha no Supabase.';
@@ -389,7 +406,7 @@ function setupAuthHandlers() {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
       if(!supabaseClient?.auth)return;
-      await requireAdminAuth(supabaseClient).signOut();
+      await requireAdminAuth(supabaseClient).signOut({scope:'local'});
       window.location.reload();
     });
   }
@@ -583,6 +600,29 @@ async function main() {
     return;
   }
 
+  let localAuthStorage;
+  try { localAuthStorage = window.localStorage; } catch { /* O envio falha de modo fechado se não puder persistir o controle. */ }
+  const requestKey = `winx.admin.recovery-request:${new URL(publicConfig.supabase_url).host}`;
+  recoveryRequest = createRecoveryRequest({ storage:localAuthStorage, key:requestKey,
+    lock: navigator.locks?.request ? action => navigator.locks.request(requestKey,{ifAvailable:true},held=>held?action():false) : null,
+    send: email => {
+      recoveryResponse = null;
+      return requestPasswordRecovery(requireAdminAuth(supabaseClient), email, window.location.origin, () => recoveryResponse);
+    }, notify:renderRecoveryRequest });
+  window.addEventListener('storage',event=>{if(event.key===requestKey)renderRecoveryRequest();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderRecoveryRequest();});
+  adminSession = createAdminSession({ auth:supabaseClient.auth, loadDashboard:fetchDashboardData,
+    isRecoveryActive:()=>recoveryFlow || authBootstrapping,
+    readStoredToken:()=>{try{return JSON.parse(localAuthStorage.getItem(adminAuthStorageKey(publicConfig.supabase_url)))?.access_token || null;}catch{return null;}},
+    forgetStoredSession:token=>forgetStoredAdminSession(localAuthStorage,adminAuthStorageKey(publicConfig.supabase_url),token),
+    onAuthorized:(session,data)=>{currentSession=session;renderDashboard(data);},
+    onLogin:({reason,interactive})=>{
+      currentSession=null;currentDashboardData=null;
+      $('[data-auth-card]').style.display='grid';
+      $('[data-admin-dashboard]').style.display='none';
+      $('[data-admin-session]').style.display='none';
+      if(interactive) authFeedback(reason==='rejected'?'Acesso administrativo não autorizado. Entre com a conta correta.':'Painel temporariamente indisponível. Tente novamente.');
+    } });
   setAuthControls(true);
   passwordRecovery = createPasswordRecovery({ auth: supabaseClient.auth, supabaseUrl: publicConfig.supabase_url });
   // O callback é síncrono: chamadas ao SDK ocorrem fora do lock interno do Auth.
@@ -607,8 +647,7 @@ async function main() {
   recoveryFlow = false;
   $('[data-recovery-card]').style.display = 'none';
   $('[data-auth-card]').style.display = 'grid';
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  await displaySession(session);
+  await adminSession.restoreInitial();
 }
 
 main().catch((error) => { setAuthControls(false); const feedback = $('[data-auth-feedback]'); if (feedback) { feedback.textContent = error.message; feedback.style.display = 'block'; } });

@@ -127,9 +127,16 @@ export function createPasswordRecovery({ auth, supabaseUrl, now = Date.now }) {
   };
 }
 
-export async function requestPasswordRecovery(auth, email, origin) {
+export async function requestPasswordRecovery(auth, email, origin, responseInfo = () => null) {
   try {
     const { error } = await auth.resetPasswordForEmail(email, { redirectTo: new URL('/admin', origin).href });
     if (error) throw error;
-  } catch (error) { throw failure(recoveryMessage(error, 'request')); }
+  } catch (error) {
+    const info = responseInfo();
+    const safe = failure(recoveryMessage(error, 'request'));
+    safe.rateLimited = error?.status === 429 || info?.status === 429
+      || ['over_email_send_rate_limit', 'over_request_rate_limit'].includes(error?.code);
+    safe.retryAt = safe.rateLimited && Number.isFinite(info?.retryAt) ? info.retryAt : null;
+    throw safe;
+  }
 }
