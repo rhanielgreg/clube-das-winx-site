@@ -5,6 +5,7 @@ import { livingRanking, OFFICIAL_RULES } from '../public/championship.js';
 import { resolveDashboardContract, officialContractPending } from '../lib/championship-contract.js';
 import { withSeasonSchedule } from '../lib/season-schedule.js';
 import { killBreakdown } from '../public/kill-breakdown.js';
+import { championshipOutcome } from '../public/monthly-championship.js';
 
 function send(res, status, body) {
   res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -51,10 +52,26 @@ export default async function handler(req, res) {
     await Promise.all([enrichRankingWithAvatars(ranking), enrichRankingWithAvatars(graveyard)]);
 
     const sync = Array.isArray(syncResult.data) ? syncResult.data[0] ?? null : syncResult.data;
-    const seasons=await withSeasonSchedule(seasonsResult.data ?? [],process.env,contract.release);
+    const monthly=contract.version==='winx-v2';
+    if(contract.product14?.medals_enabled)for(const row of [...ranking,...(graveyard||[])])row.medal_catalog_active=true;
+    if(monthly){
+      for(const row of [...ranking,...(graveyard||[])])row.monthly_contract=true;
+      for(const row of ranking){
+        row.distance_total_m=null;
+        row.time_scope=lifeEnabled?'season_observed_lower_bound':'unavailable_season';
+        if(!lifeEnabled){row.life_played_seconds=row.survival_seconds;row.survival_seconds=null;}
+      }
+      ranking.sort((a,b)=>Number(b.kills_total)-Number(a.kills_total)
+        ||(b.survival_seconds??-1)-(a.survival_seconds??-1)||a.profile_id.localeCompare(b.profile_id));
+      ranking.forEach((row,index)=>{row.rank_position=index+1;});
+    }
+    const seasons=monthly?contract.product14.seasons:await withSeasonSchedule(seasonsResult.data ?? [],process.env,contract.release);
     return send(res, 200, {
       configured: true,
-      competition_rules: OFFICIAL_RULES,
+      competition_rules: contract.version||OFFICIAL_RULES,
+      ...(monthly?{monthly_automation:contract.product14.monthly_enabled,certification_state:lifeEnabled?'pending_boundary_evidence':'pending_verified_lives',
+        official_result:championshipOutcome(ranking.map(r=>({...r,played_seconds:r.survival_seconds,certified:false}))),
+        catalog_version:contract.product14.medals_enabled?'medals-v2':'legacy-100-v1'}:{}),
       memorial_honors:Array.isArray(honorsResult.data)?honorsResult.data:null,
       state: ranking.length ? 'ready' : 'awaiting_validated_stats',
       ranking,

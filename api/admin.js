@@ -56,7 +56,7 @@ export async function verifyAdminToken(token, { env = process.env } = {}) {
   }
 }
 
-async function callServiceRpc(name, params = {}, { env = process.env } = {}) {
+export async function callServiceRpc(name, params = {}, { env = process.env } = {}) {
   const config = getAdminConfig(env);
   if (!config.serviceKey) {
     throw new Error(
@@ -76,8 +76,7 @@ async function callServiceRpc(name, params = {}, { env = process.env } = {}) {
   });
 
   if (!response.ok) {
-    const details = (await response.text()).slice(0, 500);
-    throw new Error(`RPC ${name} falhou (HTTP ${response.status}): ${details}`);
+    throw new Error(`RPC administrativa indisponível (HTTP ${response.status}).`);
   }
   return response.status === 204 ? null : response.json();
 }
@@ -104,7 +103,7 @@ export default async function handler(req, res) {
       ]);
 
       const sync = Array.isArray(syncResult.data) ? syncResult.data[0] ?? null : syncResult.data;
-      const seasons=await withSeasonSchedule(seasonsResult.data ?? [],process.env,contract.release);
+      const seasons=contract.version==='winx-v2'?contract.product14.seasons:await withSeasonSchedule(seasonsResult.data ?? [],process.env,contract.release);
       const activeSeason = seasons.find((s) => s.status === 'active') || null;
 
       return send(res, 200, {
@@ -116,6 +115,8 @@ export default async function handler(req, res) {
         seasons,
         ranking: rankingResult.data ?? [],
         sync,
+        ...(contract.version==='winx-v2'?{monthly_automation:true,competition_rules:'winx-v2',
+          pending_certifications:seasons.filter(s=>s.outcome==='pending_certification').length}:{}),
         stale: isStale(sync?.last_success_at),
       });
     } catch (error) {
@@ -128,7 +129,9 @@ export default async function handler(req, res) {
     const { action, payload = {} } = req.body || {};
     const invalid = validateAdminAction(action, payload);
     if (invalid) return send(res, invalid.status, { error: invalid.error });
-    if (!(await resolveDashboardContract()).official) return send(res, 503, { error: officialContractPending });
+    const contract=await resolveDashboardContract();
+    if (!contract.official) return send(res, 503, { error: officialContractPending });
+    if (contract.version==='winx-v2'&&action!=='rename_season')return send(res,409,{error:'Calendário automático ativo. Operações manuais legadas estão bloqueadas; intervenções excepcionais exigem procedimento auditado.'});
 
     if (!config.serviceKey) {
       return send(res, 503, {
@@ -138,6 +141,11 @@ export default async function handler(req, res) {
     }
 
     try {
+      if(action==='rename_season'){
+        if(contract.version!=='winx-v2'||!UUID.test(auth.user.id||''))return send(res,409,{error:'Intervenção excepcional indisponível.'});
+        const result=await callServiceRpc('rename_monthly_season_v2',{p_season_id:payload.season_id,p_name:payload.name.trim(),p_reason:payload.reason.trim(),p_operator_id:auth.user.id});
+        return send(res,200,{success:true,...result});
+      }
       if (action === 'start_season') {
         const { name, slug, reward_message } = payload;
         if (!name || !slug) {

@@ -20,10 +20,11 @@ export function createPublicPreviewServer({fetchImpl=fetch}={}) {
     if(url.pathname==='/api/admin')return json(403,{error:'Administração não disponível na prévia.'});
     if(url.pathname==='/api/connect'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});return res.end('<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Prévia somente leitura</title><h1>Conexão preservada.</h1><p>Esta prévia não abre o jogo.</p><a href="/index.html#servidor">Voltar ao servidor</a></html>');}
     if(!url.pathname.startsWith('/api/'))return files.emit('request',req,res);
-    if(!['/api/ranking','/api/status','/api/player'].includes(url.pathname))return json(404,{error:'Rota não disponível.'});
-    if(url.pathname==='/api/player'&&!UUID.test(url.searchParams.get('id')||''))return json(400,{error:'Perfil inválido.'});
+    if(!['/api/ranking','/api/status','/api/player','/api/global-ranking','/api/achievements','/api/rewards'].includes(url.pathname))return json(404,{error:'Rota não disponível.'});
+    const needsProfile=['/api/player','/api/achievements'].includes(url.pathname);
+    if(needsProfile&&!UUID.test(url.searchParams.get('id')||''))return json(400,{error:'Perfil inválido.'});
     try {
-      const target=origin+url.pathname+(url.pathname==='/api/player'?'?id='+encodeURIComponent(url.searchParams.get('id')):'');
+      const target=origin+url.pathname+(needsProfile?'?id='+encodeURIComponent(url.searchParams.get('id')):'');
       const response=await fetchImpl(target,{signal:AbortSignal.timeout(15000),redirect:'error'});
       const data=await response.json();
       if(!response.ok)return json(response.status,data);

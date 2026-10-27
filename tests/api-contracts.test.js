@@ -5,7 +5,7 @@ import player from '../api/player.js';
 import admin from '../api/admin.js';
 import config from '../api/config.js';
 import { getSteamAvatar } from '../lib/steam-avatar.js';
-import { achievementCatalog } from '../public/achievements-catalog.js';
+import { achievementCatalog } from '../public/legacy-achievements-catalog.js';
 
 const profileId = '20000000-0000-4000-8000-000000000001';
 const seasonId = '10000000-0000-4000-8000-000000000001';

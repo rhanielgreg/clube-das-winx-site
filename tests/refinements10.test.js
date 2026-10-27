@@ -110,7 +110,7 @@ test('Início, status, APIs, catálogo e SQL preservados salvo destino/legenda d
   const home=(await source('public/index.html')).replaceAll('\r\n','\n')
     .replace('<meta name="referrer" content="no-referrer"><script src="/auth-return.js"></script>', '');
   assert.equal(home,prior('public/index.html').replace('Ver dossiê do MVP ↗','Ver ranking ↗'));
-  for(const file of ['public/styles.css','api/player.js','api/status.js','public/status-view.js','public/achievements-catalog.js','migrations/008_season_schedule.sql'])assert.equal((await source(file)).replaceAll('\r\n','\n'),prior(file));
+  for(const file of ['public/styles.css','api/player.js','api/status.js','public/status-view.js','public/achievements-catalog.js','migrations/008_season_schedule.sql'])assert.equal((await source(file==='public/achievements-catalog.js'?'public/legacy-achievements-catalog.js':file)).replaceAll('\r\n','\n'),prior(file));
   const css=(await source('public/identity.css')).replaceAll('\r\n','\n');assert.ok(css.startsWith(prior('public/identity.css')));
   const script=await source('public/site.js');
   for(const [start,end] of [['function setupNavigation()','async function loadStatus()'],['async function loadStatus()','function updateLeader(']]) {

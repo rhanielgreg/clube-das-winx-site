@@ -9,6 +9,9 @@ import { mountFooter } from './footer.js';
 import { memorialCard, memorialHonors } from './memorial-view.js';
 import { seasonDeadline, seasonCountdown } from './season-schedule.js';
 import { statusState } from './status-view.js';
+import { mountRankingModes } from './ranking-modes.js';
+import { mountMedals } from './medal-showcase.js';
+mountRankingModes();
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -188,7 +191,7 @@ function rankingRow(row, showDistance = false, visualPosition = null) {
   const observed = memorialDate(row);
   return `<tr><td class="col-position" data-label="Ordem"><span class="rank-no ${row.alive===true&&Number(position) <= 3 ? 'top' : ''}">${safe(position === '—' ? position : String(position).padStart(2, '0'))}</span></td>
     <td class="col-player" data-label="Sobrevivente / jogador"><div class="player-cell"><img class="player-avatar" ${avatarAttributes(row)} alt="" loading="lazy"><span><strong class="player-name">${safe(row.character_name || 'Nome não informado')}</strong><small>Jogador / ${safe(row.steam_username || 'Não informado')}</small></span></div></td>
-    <td class="col-kills" data-label="Kills" title="${safe(killBreakdownText(killBreakdown(row)))}"><b>${formatNumber(row.kills_total)}</b></td><td class="col-firearm" data-label="Arma">${formatNumber(row.kills_firearm)}</td><td class="col-melee" data-label="Corpo a corpo">${formatNumber(row.kills_melee)}</td><td class="col-time" data-label="Tempo jogado">${formatDuration(row.survival_seconds)}</td>${showDistance ? `<td class="col-distance" data-label="Distância">${row.life_identity_verified === true && row.distance_unit === "meters" && hasNumber(row.distance_total_m) ? `${formatNumber(Number(row.distance_total_m)/1000)} km` : "—"}</td>` : ""}<td class="col-state" data-label="Estado">${stateBadge(row.alive)}</td><td class="record-date col-record" data-label="Registro"><small>${observed.label}</small><time>${safe(date(observed.value))}</time></td></tr>`;
+    <td class="col-kills" data-label="Kills" title="${safe(killBreakdownText(killBreakdown(row)))}"><b>${formatNumber(row.kills_total)}</b></td><td class="col-firearm" data-label="Arma">${formatNumber(row.kills_firearm)}</td><td class="col-melee" data-label="Corpo a corpo">${formatNumber(row.kills_melee)}</td>${row.monthly_contract?`<td class="col-other" data-label="Outros / não discriminados">${formatNumber(killBreakdown(row).undiscriminated)}</td>`:""}<td class="col-time" data-label="Tempo jogado">${formatDuration(row.survival_seconds)}</td>${showDistance ? `<td class="col-distance" data-label="Distância">${row.life_identity_verified === true && row.distance_unit === "meters" && hasNumber(row.distance_total_m) ? `${formatNumber(Number(row.distance_total_m)/1000)} km` : "—"}</td>` : ""}<td class="col-state" data-label="Estado">${stateBadge(row.alive)}</td><td class="record-date col-record" data-label="Registro"><small>${observed.label}</small><time>${safe(date(observed.value))}</time></td></tr>`;
 }
 
 function renderTable() {
@@ -196,6 +199,7 @@ function renderTable() {
   if (!body || !rankingPayload) return;
   const unavailable = filters.filter === 'dead' && rankingPayload.graveyard_state !== 'ready';
   const rows = filterRanking(rankingPayload.ranking || [], rankingPayload.graveyard || [], filters);
+  const otherHeading=$('[data-other-heading]');if(otherHeading)otherHeading.hidden=rankingPayload.competition_rules!=='winx-v2';
   setText('[data-ranking-position-heading]',filters.filter==='dead'?'Ordem':'Pos.');
   const hasDistance = rows.some(row=>row.life_identity_verified === true && row.distance_unit === 'meters' && hasNumber(row.distance_total_m));
   const distanceHeading = $('[data-distance-heading]'); if (distanceHeading) distanceHeading.hidden=!hasDistance;
@@ -231,6 +235,7 @@ function renderMemorial() {
   grid.innerHTML = rows.length ? rows.map(row=>memorialCard(row,date,isDemo)).join('')
     : '<p class="error-box">Nenhum registro de personagem morto encontrado para esta consulta.</p>';
   decorateLinks();
+  mountMedals(grid,rows);
 }
 
 function renderSurvivors() {
@@ -238,6 +243,7 @@ function renderSurvivors() {
   if (!grid || !rankingPayload) return;
   const rows = rankingPayload.ranking || [];
   grid.innerHTML = rows.length ? rows.map((row) => `<article class="survivor-card survivor-summary"><img ${avatarAttributes(row)} alt="" loading="lazy"><div><small>SOBREVIVENTE</small><h3>${safe(row.character_name)}</h3><p>Jogador / ${safe(row.steam_username || "Não informado")}</p><p><b class="survivor-kills">${formatNumber(row.kills_total)}</b> kills · ${formatDuration(row.survival_seconds)}</p></div></article>`).join('') : '<p class="page-intro">Nenhum personagem vivo classificado disponível nesta consulta.</p>';
+  mountMedals(grid,rows);
 }
 
 let rankingLoading = false;
@@ -251,6 +257,14 @@ async function loadRanking() {
     payload.ranking = livingRanking(payload.ranking);
     rankingPayload = payload;
     updateLeader(payload.ranking[0]);
+    if(payload.competition_rules==='winx-v2') {
+      const [a,b]=payload.ranking;
+      if(a&&b&&hasNumber(a.kills_total)&&hasNumber(a.survival_seconds)&&Number(a.kills_total)===Number(b.kills_total)&&Number(a.survival_seconds)===Number(b.survival_seconds)){
+        updateLeader(null);setText('[data-leader-name]','Empate na liderança');setText('[data-leader-account]','Kills e tempo iguais · sem terceiro desempate');
+      }
+      setText('[data-cohort-note]','Classificação observada. O resultado oficial depende da identidade das vidas e das evidências da virada mensal.');
+      const note=$('[data-cohort-note]');if(note)note.hidden=false;
+    }
     const side = $('[data-ranking-list]');
     if (side) side.innerHTML = payload.ranking.slice(1, 5).map((row) => `<li><span class="place">${safe(String(row.rank_position).padStart(2, '0'))}</span><img class="player-avatar" ${avatarAttributes(row)} alt="" loading="lazy"><a class="player-meta" href="${publicDestination(row)}"><strong>${safe(row.character_name)}</strong><small>${safe(row.steam_username)} · ${lifeState(row.alive).label}</small></a><span class="kill-count">${formatNumber(row.kills_total)}<small>KILLS</small></span></li>`).join('') || '<li class="skeleton">Nenhum outro classificado nesta temporada.</li>';
     const season = payload.seasons.find((entry) => entry.status === 'active');
@@ -261,7 +275,9 @@ async function loadRanking() {
     setText('[data-ranking-refreshed]', `Dados recebidos pela página / ${date(new Date().toISOString())}`);
     updateCollectionCountdown(); updateSeasonCountdown();
     const cohortNote=$('[data-cohort-note]');
-    if(cohortNote){cohortNote.hidden=!payload.cohort_started_at;cohortNote.textContent=payload.cohort_started_at?`Coorte validada em ${date(payload.cohort_started_at)}. Cada vida conta pontos a partir de sua primeira leitura validada; registros anteriores permanecem preservados.`:'';}
+    if(cohortNote){cohortNote.hidden=payload.competition_rules!=='winx-v2'&&!payload.cohort_started_at;cohortNote.textContent=payload.competition_rules==='winx-v2'
+      ?'Classificação observada, ainda sem certificação oficial. Tempo sazonal e distância só aparecem quando comprovados; o tempo histórico da vida não desempata a temporada. O resultado depende da identidade das vidas e das evidências da virada mensal.'
+      :payload.cohort_started_at?`Coorte validada em ${date(payload.cohort_started_at)}. Cada vida conta pontos a partir de sua primeira leitura validada; registros anteriores permanecem preservados.`:'';}
     const warning = $('[data-sync-warning]');
     if (warning) { warning.hidden = !payload.stale; warning.textContent = payload.sync?.latest_attempt_status === "failed" ? `A última tentativa de coleta falhou. Último sucesso: ${date(payload.sync?.last_success_at)}.` : payload.sync?.latest_attempt_status === "running" ? `Coleta em andamento. Exibindo o último sucesso: ${date(payload.sync?.last_success_at)}.` : `A fonte informa dados desatualizados. Última coleta: ${date(payload.sync?.last_success_at)}.`; }
     $$('[data-ranking-sync]').forEach((node) => node.classList.toggle('is-stale', Boolean(payload.stale)));

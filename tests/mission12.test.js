@@ -5,7 +5,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { killBreakdown,killBreakdownText } from '../public/kill-breakdown.js';
 import achievements from '../api/achievements.js';
 import admin from '../api/admin.js';
-import { achievementCatalog } from '../public/achievements-catalog.js';
+import { achievementCatalog } from '../public/legacy-achievements-catalog.js';
 import { parseRecovery,rehearseRecovery } from '../scripts/rehearse-recovery.js';
 const world='f0000000-0000-4000-8000-000000000001',account='a'.repeat(64),life='b'.repeat(64);
 const metric=(value)=>({value,unit:'count',scope:'life',validated:true,coverage:'observed_lower_bound'});

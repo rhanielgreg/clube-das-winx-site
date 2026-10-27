@@ -176,6 +176,13 @@
                 </div>
               </div>
 
+              <form data-rename-season-form hidden class="new-season-form">
+                <p>Intervenção excepcional: altera apenas o nome, com registro de auditoria.</p>
+                <label>Novo nome <input name="name" required minlength="3" maxlength="80"></label>
+                <label>Justificativa <input name="reason" required minlength="10" maxlength="500"></label>
+                <button type="submit" class="button button-ghost button-small">Registrar alteração de nome</button>
+                <p data-rename-feedback role="status"></p>
+              </form>
               <div class="action-buttons-row">
                 <button class="button button-ghost button-small" data-action-reset-baseline title="Faz com que as kills acumuladas anteriores dos personagens contem já na temporada">
                   ⚙️ ZERAR LINHA DE BASE (CONTAR KILLS HISTÓRICAS)

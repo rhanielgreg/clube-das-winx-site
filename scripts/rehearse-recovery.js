@@ -11,14 +11,17 @@ export const parseRecovery=text=>JSON.parse(text,(key,value,context)=>
 const expected=['collector_locks','collector_runs','game_players','game_characters','ranking_seasons',
  'player_statistics_current','player_stat_snapshots','season_winners','season_results','season_classification',
  'life_identities','life_observations','achievement_definitions','life_achievements','dashboard_rollout_state'];
+const extensions=['product14_state','season_cycles_v2','season_archive_v2','season_uncertain_intervals_v2',
+ 'medal_definitions_v2','medal_baselines_v2','medal_unlocks_v2','source_epochs_v2','season_admin_audit_v2'];
 function grants(kind,target,entries=[]) {
  return [`revoke all on ${kind} ${target} from public,anon,authenticated,service_role;`,
  ...entries.map(g=>`grant ${g.privilege} on ${kind} ${target} to ${role(g.role)}${g.grantable?' with grant option':''};`)];
 }
-export async function rehearseRecovery(backup,{migrations=[]}={}) {
- if(backup.schema!=='public'||backup.tables?.length!==15||backup.other_relations?.length||backup.memberships?.length
-  ||JSON.stringify(Object.keys(backup.data).sort())!==JSON.stringify([...expected].sort())
-  ||backup.tables.some(t=>!expected.includes(t.name)||t.policies?.length||t.columns.some(c=>c.generated)))
+export async function rehearseRecovery(backup,{migrations=[],inspect}={}) {
+ const names=(backup.tables||[]).map(t=>t.name);
+ if(backup.schema!=='public'||!expected.every(name=>names.includes(name))||backup.other_relations?.length||backup.memberships?.length
+  ||JSON.stringify(Object.keys(backup.data).sort())!==JSON.stringify([...names].sort())
+  ||backup.tables.some(t=>![...expected,...extensions].includes(t.name)||t.policies?.length||t.columns.some(c=>c.generated)))
   throw new Error('Unsupported backup scope; manual review required');
  const db=new PGlite();
  try {
@@ -73,7 +76,7 @@ export async function rehearseRecovery(backup,{migrations=[]}={}) {
    counts[t.name]=backup.data[t.name].length;
   }
   // Replay the snapshot export to compare effective schema, functions and ACLs.
-  const exported=(await db.exec(await readFile(new URL('./recovery-export.sql',import.meta.url),'utf8'))).find(r=>r.rows?.[0]?.recovery_export);
+  const exported=await db.query('select public.get_service_recovery_export_v1() as recovery_export');
   const restored=parseRecovery(exported.rows[0].recovery_export);
   for(const key of ['tables','functions','schema_metadata','default_privileges','sequences']) {
    // Role OIDs in ACL strings differ locally; named grant lists are authoritative.
@@ -101,7 +104,9 @@ export async function rehearseRecovery(backup,{migrations=[]}={}) {
   for(const migration of migrations) await db.exec(migration);
   const readiness=(await db.query('select get_service_pipeline_readiness_v1() data')).rows[0].data;
   if(!readiness.contract_ready)throw new Error('Restored pipeline readiness failed');
+  const inspection=typeof inspect==='function'?await inspect(db):undefined;
   return {engine:'PGlite ephemeral PostgreSQL',network:'none',tables:counts,functions:backup.functions.length,
+   ...(inspection===undefined?{}:{inspection}),
    exact_rows:true,metadata_and_named_grants:true,migrations_rehearsed:migrations.length,contract_ready:true,
    limitation:'Application public schema only; auth/storage and multi-session transport are outside this recovery proof.'};
  } finally { await db.close(); }

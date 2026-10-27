@@ -220,6 +220,11 @@ async function fetchDashboardData(session = currentSession) {
 
 function renderDashboard(data) {
   currentDashboardData = data;
+  if(data.monthly_automation===true){
+    $$('[data-action-open-close-modal], [data-start-season-btn], [data-modal-confirm-btn], [data-action-reset-baseline]').forEach(button=>{button.disabled=true;button.title='Calendário mensal automático; operação manual legada bloqueada.';});
+    const legacy=$('[data-new-season-form]');if(legacy)legacy.closest('section').hidden=true;
+    const rename=$('[data-rename-season-form]');if(rename)rename.hidden=!data.admin.hasServiceKey||!data.activeSeason;
+  }
   const { activeSeason, ranking, seasons, sync, admin } = data;
 
   // Header
@@ -256,7 +261,7 @@ function renderDashboard(data) {
     $('[data-season-id]').textContent = activeSeason.season_id;
     $('[data-season-start]').textContent = formatDate(activeSeason.started_at);
     $('[data-season-end]').textContent = seasonDeadline(activeSeason)||'Prazo não confirmado';
-    $('[data-season-closure]').textContent = activeSeason.closure_mode==='manual'?'Encerramento manual':'Forma de encerramento não confirmada';
+    $('[data-season-closure]').textContent = activeSeason.closure_mode==='automatic'?'Virada mensal automática · resultado sujeito à certificação':activeSeason.closure_mode==='manual'?'Encerramento manual':'Forma de encerramento não confirmada';
   } else {
     activeContent.style.display = 'none';
     noSeasonContent.style.display = 'block';
@@ -309,6 +314,12 @@ function escapeHtml(text) {
 }
 
 function setupAuthHandlers() {
+  $('[data-rename-season-form]')?.addEventListener('submit',async event=>{
+    event.preventDefault();const form=event.currentTarget,button=form.querySelector('button'),feedback=$('[data-rename-feedback]');button.disabled=true;
+    try{const values=new FormData(form);await requestAdminApi('rename_season',{season_id:currentDashboardData?.activeSeason?.season_id,name:values.get('name'),reason:values.get('reason')});
+      form.reset();renderDashboard(await fetchDashboardData());feedback.textContent='Nome atualizado e intervenção registrada.';
+    }catch{feedback.textContent='Não foi possível registrar a alteração. Atualize os dados antes de tentar novamente.';}finally{button.disabled=false;}
+  });
   const feedback = $('[data-auth-feedback]');
   const pwdForm = $('[data-password-form]');
   const magicForm = $('[data-magic-form]');

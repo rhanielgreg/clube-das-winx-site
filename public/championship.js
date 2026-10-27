@@ -5,6 +5,13 @@ export function livingRanking(rows = []) {
 }
 export function seasonResult(season) {
   if (season.status !== 'closed') return 'Disputa em andamento';
+  if(season.rules_version==='winx-v2') {
+    if(season.outcome==='pending_certification')return 'Pendente de certificação';
+    if(season.outcome==='technical_tie')return 'Empate técnico — sem campeão individual';
+    if(season.outcome==='apocalypse')return 'O Apocalipse Venceu';
+    if(season.outcome==='champion'&&season.winner_name)return `Campeão: ${season.winner_name}`;
+    return 'Resultado pendente de certificação';
+  }
   if (season.outcome === 'apocalypse' && season.rules_version === OFFICIAL_RULES) return 'O Apocalipse Venceu';
   if (season.winner_name) return `Campeão: ${season.winner_name}`;
   return 'Resultado não certificado no contrato disponível.';

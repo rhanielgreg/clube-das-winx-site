@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
-import { achievementCatalog } from '../public/achievements-catalog.js';
+import { achievementCatalog } from '../public/legacy-achievements-catalog.js';
 import { evaluateAchievements } from '../lib/achievements.js';
 import { metricUnits,archiveMetrics } from '../lib/life-metrics.js';
 import { visibleAchievements,medalSvg } from '../public/achievement-view.js';
