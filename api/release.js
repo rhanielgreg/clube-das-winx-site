@@ -4,6 +4,6 @@ export default async function handler(req,res){
  if(req.method!=='GET'){res.setHeader('allow','GET');return res.status(405).json({error:'Método não permitido.'});}
  const contract=await resolveDashboardContract();
  const revision=process.env.VERCEL_GIT_COMMIT_SHA;
- return res.status(200).json({release:'mission11',commit:/^[a-f0-9]{40}$/i.test(revision||'')?revision:null,
+ return res.status(200).json({release:'mission12',commit:/^[a-f0-9]{40}$/i.test(revision||'')?revision:null,
   competition_contract:contract.official?'winx-v1':null,life_contract:contract.life?'life-v1':null});
 }

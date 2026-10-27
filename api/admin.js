@@ -98,9 +98,9 @@ export default async function handler(req, res) {
     if (!contract.official) return send(res, 503, { error: officialContractPending });
     try {
       const [rankingResult, seasonsResult, syncResult] = await Promise.all([
-        callPublicRpc('get_public_ranking', { p_limit: 250 }),
+        callPublicRpc(contract.life?'get_public_ranking_life_v1':'get_public_ranking', { p_limit: 100 }),
         callPublicRpc('get_public_seasons_v2', { p_limit: 50 }),
-        callPublicRpc('get_public_ranking_status'),
+        callPublicRpc(contract.life?'get_public_pipeline_status_v1':'get_public_ranking_status'),
       ]);
 
       const sync = Array.isArray(syncResult.data) ? syncResult.data[0] ?? null : syncResult.data;

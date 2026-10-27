@@ -1,5 +1,20 @@
 # Missão Master 07 — checkpoint consolidado
 
+## Missão Master 12 — integração segura em publicação (26/10/2026)
+
+**Este bloco sucede a Missão 11.** Base real conferida: site main8bb97f5 e coletor master5054f30, ambos limpos e sem atualização remota de terceiros. Continuação em codex/mission12. Implementação, evidências e limitações em [MISSION12.md](MISSION12.md); revisão individual dos 100 critérios e proposta contextual em [MISSION12-ACHIEVEMENTS.md](MISSION12-ACHIEVEMENTS.md).
+
+- Migração **010 aplicada**, sem ativar a coorte: índice único mundo/vida e guarda de identidade, congelamento após morte e reconciliação de categorias. As 34 funções anteriores mantêm corpo e grants exatos; função nova privada sem EXECUTE para anon/authenticated. Readiness verdadeiro. Todos os 9.043 snapshots anteriores preservados integralmente, com crescimento natural para 9.068; catálogo100, vidas0, concessões0. Temporada1 e seus timestamps/estado manual intocados.
+- Recuperação antes/depois ensaiada sobre exportações reais de 15 tabelas, 34/35 funções, dados, schema, grants e sequências em PGlite efêmero sem rede. Sem auth/storage/PITR; Docker indisponível nesta rodada. Exportações e cópias da origem fora do Git, em pasta privada já protegida. Nenhum job periódico fictício criado.
+- Origem atual: cinco IDs preservados, três vivos/dois mortos. Em relação à primeira cópia, uma morte natural mantendo ID; sem nascimento/renomeação observado. Os três hashes Lua originais coincidem. Não habilitar TTF/life-v1 antes de confirmar esses ciclos e namespace da geração do mundo. Nenhum vínculo retroativo por nome, Steam ou hash de BLOB.
+- Coletor **f4221c9e8bab76b34c577801bbcb817654348173** integrado/enviado por fast-forward à master e codex/mission12: dupla leitura/comparação de bytes do snapshot, rejeição de colisão de ID entre contas, diagnóstico offline sem IDs. Credenciais, cron e modo legado preservados. Railway acionou build automático do commit; execução real nova ainda deve ser conferida.
+- Site: API GET contextual de conquistas, sem página/dossiê e sem concessão. Contrato desativado devolve estado pendente e contagem desconhecida. Conta níveis separadamente, exibe maior por sequência. Kill breakdown preserva total, partes conhecidas e residual explicitamente não discriminado; tooltip no Ranking, sem redesenho/novas colunas. Admin consulta a mesma coorte pública após futura ativação. ADMIN_EMAIL ainda falta e conector Vercel retorna403 no escopo correto: Greg deve escolher conta legítima existente e configurar somente ADMIN_EMAIL/Production, depois republicar.
+- **115/115 Node22.23.4 e 115/115 Node24.15.0**, nenhum ignorado; 28 testes Python3.14.5 aprovados. Testes isolados de morte/congelamento/renomeação/nova vida/colisão/reconciliação, ACL, API contextual, contagem de níveis e sessão Auth comum rejeitada. Bootstrap coletor×001–007 e migração010 sobre cópia produtiva aprovados; catálogo sincronizado e whitespace conferido. Nenhuma escrita de teste em produção.
+- Nenhum dos100 critérios foi alterado. 61 definições têm contadores potencialmente disponíveis, condicionados à identidade/cobertura; dias reais, distâncias por modo e arquivo oficial seguem dependências concretas. Proposta para mes-sem-tiros e visual contextual separadas, não implementadas. Três reconhecimentos do Memorial sem vencedor enquanto as provas forem insuficientes.
+- Prévia local com dados públicos reais em loopback4174 validada: três vivos, nomes/ordem/MVP conservados, residual120 explícito e console sem erros/overflow. Home, Servidor, Memorial, CSS/identidade global e catálogo congelados.
+
+Publicação do site e execução do coletor serão marcadas como concluídas somente após conferir SHA/URLs/logs reais.
+
 ## Missão 11 — publicada e validada (26/10/2026)
 
 **Este é o estado vigente; os blocos seguintes são históricos.** Base recebida: main/codex/mission09 limpas em 0b003fb, remoto buscado novamente sem alterações de terceiros. Implementação **538168988c918533a4a9776784f23b588569a604**, integrada por fast-forward e enviada às duas branches. Coletor master5054f30 preservado.

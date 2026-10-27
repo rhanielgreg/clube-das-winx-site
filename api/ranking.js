@@ -4,6 +4,7 @@ import { normalizeCharacter } from '../public/contracts.js';
 import { livingRanking, OFFICIAL_RULES } from '../public/championship.js';
 import { resolveDashboardContract, officialContractPending } from '../lib/championship-contract.js';
 import { withSeasonSchedule } from '../lib/season-schedule.js';
+import { killBreakdown } from '../public/kill-breakdown.js';
 
 function send(res, status, body) {
   res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
     }
 
     const ranking = livingRanking((rankingResult.data ?? []).map(normalizeCharacter));
+    for (const row of ranking) row.kill_breakdown=killBreakdown(row);
     const graveyard = Array.isArray(graveyardResult.data) ? graveyardResult.data.map(normalizeCharacter) : null;
     await Promise.all([enrichRankingWithAvatars(ranking), enrichRankingWithAvatars(graveyard)]);
 
