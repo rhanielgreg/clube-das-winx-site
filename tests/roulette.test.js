@@ -73,12 +73,14 @@ test('roulette: reduced motion presents every rarity immediately, with correct r
 
 test('roulette: markup separates official actions, labels directed demonstration and uses honest artwork fallback',async()=>{
  const html=rouletteMarkup({catalog:rewardCatalog,current:{season_id:'fixture',season_name:'T1'},reason:'Temporada em andamento'});
- assert.match(html,/role="tablist"/);assert.match(html,/DEMONSTRAÇÃO — SEM VALOR OFICIAL/);assert.match(html,/14,4°/);assert.match(html,/3,6°/);assert.match(html,/data-reward-draw disabled/);assert.match(html,/sem miniatura verificada/);
+ assert.match(html,/role="tablist"/);assert.match(html,/DEMONSTRAÇÃO — SEM VALOR OFICIAL/);assert.match(html,/14,4°/);assert.match(html,/3,6°/);assert.match(html,/data-reward-draw disabled/);assert.match(html,/data-verified-item-icon/);assert.match(html,/Ícone não verificado ou indisponível/);
  const model=await readFile(new URL('../public/roulette-model.js',import.meta.url),'utf8'),machine=await readFile(new URL('../public/roulette-machine.js',import.meta.url),'utf8');
  assert.doesNotMatch(model,/fetch\s*\(|XMLHttpRequest|sendBeacon|localStorage/);assert.doesNotMatch(machine,/fetch\s*\(|XMLHttpRequest|sendBeacon|request_id|randomUUID/);
  assert.match(machine,/bindSpinLifecycle/);assert.match(machine,/MutationObserver/);assert.match(machine,/lifetime.abort\(\)/);
  const controller=await readFile(new URL('../public/admin-rewards.js',import.meta.url),'utf8');
  assert.match(controller,/if\(draw&&machine\?\.mode!=='official'\)return/);
+ assert.ok(controller.indexOf('audioContext=machine.releaseAudio()')<controller.indexOf('machine.destroy()'));
+ assert.match(controller,/catalog,current,mode,audioContext/);assert.match(machine,/audio=audioContext/);
  assert.ok(controller.indexOf('const data=await request({action')<controller.indexOf('await machine.revealOfficial(persisted)'));
  assert.doesNotMatch(controller,/setInterval\(tick/);
  const officialBody=controller.slice(controller.indexOf('const data=await request({action'),controller.indexOf('dashboard=data.dashboard'));

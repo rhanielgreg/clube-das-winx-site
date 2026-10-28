@@ -10,6 +10,7 @@ import {createRewardWinner} from '../tests/fixtures/reward-winner.js';
 import adminRewards from '../lib/admin-rewards.js';
 const official=process.argv.includes('--official-fixture');
 const reduced=process.argv.includes('--reduced-motion');
+const missingKatana=process.argv.includes('--missing-katana-icon');
 const port=Number(process.argv.find(a=>a.startsWith('--port='))?.slice(7)||4180);
 if(![4180,4181,4182].includes(port))throw Error('Only dedicated loopback fixture ports are permitted.');
 const db=await createMonthlyTestDb({rewards:true});
@@ -38,7 +39,7 @@ const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');statistics.requests.push({method:req.method,path:url.pathname});if(statistics.requests.length>500)statistics.requests.shift();
   if(req.method==='POST')statistics.postRequests++;
   if(req.method!=='GET'&&!(official&&req.method==='POST'&&url.pathname==='/api/admin-rewards'))return json(405,{error:'Isolated demonstration server rejects all writes.'});
-  if(url.pathname==='/__proof')return json(200,{fixture:true,officialFixture:official,reducedMotionFixture:reduced,...statistics,baselineDataHash:baseline,currentDataHash:await dataHash(),
+  if(url.pathname==='/__proof')return json(200,{fixture:true,officialFixture:official,reducedMotionFixture:reduced,missingKatanaIconFixture:missingKatana,...statistics,baselineDataHash:baseline,currentDataHash:await dataHash(),
    officialDraws:Number((await db.query('select count(*) n from season_reward_draws_v1')).rows[0].n),rewardEvents:Number((await db.query('select count(*) n from reward_events_v1')).rows[0].n)});
   if(url.pathname==='/api/admin-rewards'){
    let body='';for await(const part of req){body+=part;if(body.length>12000)return json(413,{});}let status=200;
@@ -49,6 +50,7 @@ const server=http.createServer(async(req,res)=>{
    return res.end(`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TESTE ISOLADO · Roleta 2.0</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/rewards.css"><body class="admin-body"><p style="padding:15px;background:#4d102f;color:white;font-size:14px">TESTE LOCAL ISOLADO · DADOS SINTÉTICOS · ${official?'SORTEIO OFICIAL SOMENTE NESTA FIXTURE':'TODAS AS ESCRITAS BLOQUEADAS'} · sem conexão ao servidor real.</p><main class="admin-content" style="max-width:1260px;margin:auto"><nav data-admin-nav><button type="button" class="button button-ghost" data-admin-go="roulette">Roleta dos Campeões</button><button type="button" class="button button-ghost" data-admin-go="overview">Sair da tela (teste)</button></nav><h1 data-admin-heading tabindex="-1">Roleta dos Campeões</h1><section data-admin-view="overview" hidden><p>Fora da roleta. Nenhum dado do campeonato foi alterado.</p></section><div data-admin-rewards></div></main>${reduced?'<script>const nativeMatch=window.matchMedia.bind(window);window.matchMedia=q=>q==="(prefers-reduced-motion: reduce)"?{matches:true,media:q,addEventListener(){},removeEventListener(){}}:nativeMatch(q);</script>':''}<script type="module">import {mountAdminRewards} from '/admin-rewards.js';import{setupAdminShell}from'/admin-shell.js';setupAdminShell();mountAdminRewards({token:()=> 'fixture-ui-token'});</script></body></html>`);
   }
   if(url.pathname.startsWith('/api/'))return json(404,{});
+  if(missingKatana&&url.pathname==='/assets/items-b42/Base.Katana.png')return json(404,{fixture:'Intentionally missing icon to verify the visual fallback.'});
   const file=path.resolve(root,url.pathname.slice(1));if(!file.startsWith(root+path.sep))return json(404,{});
   const bytes=await readFile(file);res.writeHead(200,{'content-type':({'.js':'application/javascript','.css':'text/css','.webp':'image/webp','.svg':'image/svg+xml','.ttf':'font/ttf'})[path.extname(file)]||'application/octet-stream','cache-control':'no-store'});res.end(bytes);
  }catch{json(500,{error:'Isolated fixture unavailable.'});}

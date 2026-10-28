@@ -66,3 +66,14 @@
 .roulette-v2 .machine-result-source{padding:12px 26px 0;line-height:1.7}
 .roulette-v2 .machine-identity{max-width:640px;margin:20px auto;text-align:left;padding:12px;border:1px solid #77516a;border-radius:8px;background:#120d14}
 .roulette-v2 .machine-identity code{overflow-wrap:anywhere}
+.roulette-v2 .machine-item-art{display:flex;flex:0 0 auto;gap:8px;width:auto;align-items:center}
+.roulette-v2 .machine-component{display:grid;place-items:center;width:56px;height:64px;border:1px solid #714d64;border-radius:8px;background:radial-gradient(#592e4844,#100b12);box-shadow:inset 0 0 14px #0007;flex:none}
+.roulette-v2 .machine-component img{width:48px;height:48px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #000b)}
+.roulette-v2 .machine-component-fallback{display:none;font-size:36px;color:#e8bfd6}
+.roulette-v2 .machine-component.is-missing .machine-component-fallback{display:block}
+.roulette-v2 .machine-victory .machine-item-art{width:auto;justify-content:center}
+.roulette-v2 .machine-victory .machine-component{width:112px;height:112px}
+.roulette-v2 .machine-victory .machine-component img{width:96px;height:96px}
+.roulette-v2 .machine-asset-credit{font-size:11px!important;line-height:1.7;color:#d1b8c7;margin:18px auto;max-width:720px}
+.roulette-v2 .machine-asset-credit a{color:#ffb0d6;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:760px){.roulette-v2 .machine-victory .machine-component{width:88px;height:88px}.roulette-v2 .machine-victory .machine-component img{width:80px;height:80px}.roulette-v2 .machine-prize{gap:10px;padding:14px}.roulette-v2 .machine-component{width:48px;height:56px}.roulette-v2 .machine-component img{width:42px;height:42px}}
