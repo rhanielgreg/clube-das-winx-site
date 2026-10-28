@@ -1,53 +1,36 @@
 import {escapeHtml as safe} from './contracts.js';
 import {rarityNames,deliveryNames,rewardAnnouncement,deliveryActions,rewardDate} from './rewards-view.js';
-import {wheelPreview,catalogMarkup,historyMarkup,rarityChances,rewardRotation} from './reward-presentation.js';
+import {catalogMarkup,historyMarkup,rarityChances} from './reward-presentation.js';
+import {rouletteMarkup,mountRouletteMachine} from './roulette-machine.js';
 const reasons={season_open:'Temporada em andamento',pending_certification:'Resultado pendente de certificação',technical_tie:'Empate técnico — sem campeão individual',apocalypse:'O Apocalipse Venceu',identity_unverified:'Identidade da vida não comprovada',world_unverified:'Geração do mundo não comprovada',forfeited:'Vida campeã morta — direito material perdido',survival_unknown:'Sobrevivência desconhecida',stale_survival:'Atualize a evidência de sobrevivência',cohort_inactive:'Coorte certificada ainda inativa',eligible:'Campeão individual e vida verificados'};
 const controllers=new WeakMap();
 export function mountAdminRewards({token}){
  const root=document.querySelector('[data-admin-rewards]');if(!root)return;
  if(controllers.has(root)){controllers.get(root).refresh();return;}
- let dashboard=null,busy=false,audio=null,selected=null;
+ let dashboard=null,busy=false,selected=null,machine=null,mode='demo';
+ if(!document.querySelector('link[data-roulette-style]')){const style=document.createElement('link');style.rel='stylesheet';style.href='/roulette.css';style.dataset.rouletteStyle='true';document.head.append(style);}
  const filters={rarity:'all',search:''};
- const soundKey='winx.rewards.sound';let sound=true;try{sound=localStorage.getItem(soundKey)!=='muted';}catch{}
  const authHeaders=()=>({'content-type':'application/json',authorization:`Bearer ${token()||''}`});
  async function request(body){const response=await fetch('/api/admin-rewards',{method:body?'POST':'GET',headers:authHeaders(),cache:'no-store',signal:AbortSignal.timeout(body?15000:8000),...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw Error(data.error||'Premiações indisponíveis.');return data;}
  function render(){
+  if(machine){mode=machine.mode;machine.destroy();machine=null;}
   const seasons=dashboard?.seasons||[];
   const current=seasons.find(s=>s.season_id===selected)||seasons[0];selected=current?.season_id||null;
   const catalog=dashboard?.catalog,eligible=current?.eligibility?.eligible===true&&catalog?.active===true;
-  const previewRewards=Object.keys(rarityChances).flatMap(rarity=>(catalog?.rewards||[]).filter(r=>r.rarity===rarity).slice(0,rarity==='common'?2:1));
-  root.innerHTML=`<div data-admin-view="roulette">
-   <div class="admin-toolbar reward-toolbar"><label>Temporada <select data-reward-season-select aria-label="Temporada da roleta">${seasons.map(s=>`<option value="${safe(s.season_id)}" ${s===current?'selected':''}>${safe(s.season_name)}</option>`).join('')}</select></label><label><input type="checkbox" data-reward-sound ${sound?'checked':''}> Som da roleta</label><button type="button" class="button button-ghost button-small" data-rewards-refresh>Atualizar premiações</button></div>
-   <div class="reward-roulette-grid"><section class="admin-panel reward-wheel-panel">${wheelPreview()}<span class="status-badge warning" data-wheel-label>${current?.draw?'RESULTADO OFICIAL PERSISTIDO':'PRÉVIA VISUAL · SEM SORTEIO REAL'}</span><p>Roda ilustrativa. O backend escolhe e grava o resultado oficial antes da animação.</p>
-    <div data-reward-season="${safe(current?.season_id||'')}">${current?.draw?`<div class="reward-result"><small>RESULTADO OFICIAL PERSISTIDO</small><h3>${safe(current.draw.reward_snapshot.name)}</h3><p>${safe(rarityNames[current.draw.rarity])} · ${safe(rewardDate(current.draw.drawn_at))}</p><button type="button" class="button button-ghost button-small" data-reward-copy>Copiar divulgação</button></div>`:`<label class="reward-confirm"><input type="checkbox" data-draw-identity ${eligible?'':'disabled'}> Conferi o campeão e a mesma vida indicada</label><button type="button" class="button button-pink reward-draw-button" data-reward-draw ${eligible?'':'disabled'}>${eligible?'Sortear prêmio oficial':'🔒 Sorteio oficial bloqueado'}</button>`}</div>
-    <p class="reward-process">Em andamento → Encerramento lógico → Certificação → Sorteio → Entrega</p><p class="muted">${safe(reasons[current?.eligibility?.reason]||'Elegibilidade não verificada nesta consulta')}</p></section>
-    <div><section class="admin-panel"><div class="panel-header"><h2>🏆 Temporada e campeão</h2><span class="status-badge ${eligible?'':'warning'}">${current?.draw?'Sorteio persistido':eligible?'Elegível':'Aguardando'}</span></div><h3>${safe(current?.season_name||'Temporada não disponível')}</h3><h4>${safe(current?.character_name||'Campeão ainda não definido')}</h4>${current?.steam_username?`<p>${safe(current.steam_username)}</p>`:''}<p>${safe(reasons[current?.eligibility?.reason]||'Nenhuma vida campeã comprovada nesta consulta.')}</p><p class="muted">A liderança provisória não é um título. O banco revalida a vida, o mundo, a sobrevivência e o catálogo.</p>${current?.eligibility?.life_id?`<details><summary>Identidade e evidência</summary><p>Vida: <code>${safe(current.eligibility.life_id)}</code><br>Última observação: ${safe(rewardDate(current.eligibility.last_observed_at))}</p></details>`:''}</section>
-    <section class="admin-panel"><div class="panel-header"><h2>Probabilidades oficiais</h2><small>45 / 30 / 20 / 4 / 1</small></div><ul class="reward-chances">${Object.entries(rarityChances).map(([rarity,chance])=>`<li class="rarity-${rarity}"><span><i aria-hidden="true"></i>${safe(rarityNames[rarity])}</span><strong>${chance}%</strong></li>`).join('')}</ul></section>
-    <section class="admin-panel"><div class="panel-header"><h2>Premiações disponíveis</h2><span class="status-badge neutral">${catalog?.rewards?.length||0} recompensas</span></div><div class="reward-available">${previewRewards.map(r=>`<article class="rarity-${safe(r.rarity)}"><strong>${safe(r.name)}</strong><small>${safe(rarityNames[r.rarity])}${r.items.length===2?' · 2 itens':''}</small></article>`).join('')||'<p>Catálogo não disponível.</p>'}</div><p class="muted">${previewRewards.length} de ${catalog?.rewards?.length||0} recompensas nesta prévia. Entrega manual auditada. Entrega automática e veículos desabilitados.</p><button type="button" class="button button-ghost button-small" data-admin-go="catalog">Ver catálogo e histórico</button></section></div></div></div>
+  root.innerHTML=`${rouletteMarkup({catalog,current,seasons,eligible,reason:reasons[current?.eligibility?.reason],mode})}
    <div data-admin-view="catalog"><div class="reward-catalog-summary"><section class="kpi-tile"><small>CATÁLOGO ATUAL</small><strong>${catalog?.rewards?.length||0}</strong><span class="kpi-sub">Recompensas na versão consultada</span></section><section class="kpi-tile"><small>RARIDADES</small><strong>5</strong><span class="kpi-sub">45 / 30 / 20 / 4 / 1</span></section><section class="kpi-tile"><small>SORTEIOS PERSISTIDOS</small><strong>${seasons.filter(s=>s.draw).length}</strong><span class="kpi-sub">Na consulta administrativa</span></section></div><div class="admin-panel"><p>Versão: <strong>${safe(catalog?.version||'Indisponível')}</strong> · ${catalog?.active?'Ativa':'Não ativa'}. Histórico preservado por versão; cada sorteio conserva seu catálogo e prêmio.</p><p class="muted">As chances individuais abaixo incluem o peso de cada recompensa dentro de sua raridade. Condição padrão, sem promessa de condição máxima.</p></div><div class="admin-panel reward-filters"><label>Buscar prêmio<input type="search" data-catalog-search value="${safe(filters.search)}" placeholder="Nome do prêmio"></label><label>Raridade<select data-catalog-rarity><option value="all">Todas as raridades</option>${Object.keys(rarityChances).map(r=>`<option value="${r}" ${filters.rarity===r?'selected':''}>${safe(rarityNames[r])}</option>`).join('')}</select></label><button type="button" class="button button-ghost" data-catalog-clear>Limpar filtros</button><p>Itens do catálogo ativo conferidos na fonte. A chance da raridade é distribuída pelos pesos individuais.</p></div><div data-catalog-results>${catalogMarkup(catalog,filters)}</div>
    <section class="admin-panel"><div class="panel-header"><h2>🏆 Histórico de campeões e premiações</h2><button type="button" class="button button-ghost button-small" data-rewards-refresh>Atualizar premiações</button></div>${historyMarkup(seasons)}</section>
    <section class="admin-panel"><h2>📦 Gerenciamento da entrega manual</h2>${seasons.filter(s=>s.draw).map(s=>{const d=s.draw;return `<article class="reward-season" data-reward-season="${safe(s.season_id)}"><h3>${safe(s.season_name)}</h3><p>${safe(s.character_name||d.presentation_snapshot?.character_name||'Campeão certificado')} · <strong>${safe(d.reward_snapshot.name)}</strong></p><span class="status-badge warning">${safe(deliveryNames[d.delivery_state]||'Estado não informado')}</span><ul>${d.reward_snapshot.items.map((i,index)=>`<li>Componente ${index+1} · ${safe(i.quantity)} × ${safe(i.script_id)} · ${safe(deliveryNames[d.components?.find(c=>c.component===index)?.state||'pending'])}</li>`).join('')}</ul><button type="button" class="button button-ghost button-small" data-reward-copy>Copiar divulgação</button>
      <details><summary>Entrega manual e reconciliação por componente</summary><p>Confira no servidor a conta e esta vida exata, viva e online. Registre evidência verificável. Confirmação manual não é prova automatizada do inventário.</p><label><input type="checkbox" data-delivery-identity> Conferi a conta e a mesma vida premiada</label><label>Evidência de identidade/entrega<textarea data-delivery-evidence minlength="20" maxlength="2000" rows="3"></textarea></label><label>Componente <select data-delivery-component>${d.reward_snapshot.items.map((i,index)=>`<option value="${index}">${index+1}: ${safe(i.script_id)}</option>`).join('')}</select></label><div class="reward-actions">${[['begin_manual','Iniciar registro manual'],['offline','Registrar offline'],['block','Bloquear por identidade'],['sent','Registrar envio não comprovado'],['uncertain','Registrar resultado incerto'],['confirm_component','Confirmar este componente manualmente'],['not_delivered','Comprovar que este componente não foi entregue']].map(([action,label])=>`<button type="button" class="button button-ghost button-small" data-delivery-action="${action}" ${deliveryActions(d.delivery_state).includes(action)?'':'disabled'}>${label}</button>`).join('')}</div><p>Após incerteza, reconciliar cada componente antes de qualquer nova tentativa. Nunca repetir componente confirmado.</p><details><summary>Identidade e trilha de auditoria</summary><p>Vida premiada: <code>${safe(d.life_id)}</code> · Versão: ${safe(d.catalog_version)}</p><ol>${(d.events||[]).map(e=>`<li>${safe(rewardDate(e.created_at))} · ${safe(e.action)} → ${safe(e.new_state)} · operador ${safe(e.operator_id||'origem nativa')}<p>${safe(e.evidence||'')}</p></li>`).join('')}</ol></details></details></article>`;}).join('')||'<div class="reward-empty"><h3>Aguardando premiação oficial</h3><p>Quando houver sorteio persistido, a identidade e cada componente entregue poderão ser auditados aqui.</p><p>Gerenciamento disponível após sorteio oficial.</p></div>'}</section></div>
    <p class="reward-feedback" data-reward-feedback role="status" aria-live="polite"></p>`;
-  const angle=current?.draw?rewardRotation(current.draw.rarity):null;
-  if(angle!==null)root.querySelector('[data-reward-wheel]').style.transform=`rotate(${angle}deg)`;
+  machine=mountRouletteMachine(root.querySelector('[data-roulette-machine]'),{catalog,current,mode,onMode:next=>{mode=next;}});
   document.dispatchEvent(new Event('admin-content-ready'));
  }
- async function refresh(){if(busy)return;try{dashboard=await request();render();}catch(error){dashboard=null;render();root.querySelector('[data-reward-feedback]').textContent=error.message;}}
- function primeSound(){if(!sound)return;try{audio??=new(window.AudioContext||window.webkitAudioContext)();audio.resume().catch(()=>{});}catch{audio=null;}}
- function tick(){if(!sound||!audio)return;try{const oscillator=audio.createOscillator(),gain=audio.createGain();gain.gain.value=.025;oscillator.frequency.value=700;oscillator.connect(gain);gain.connect(audio.destination);oscillator.start();oscillator.stop(audio.currentTime+.035);}catch{}}
- async function animate(draw){
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const wheel=root.querySelector('[data-reward-wheel]');if(!wheel)return;
-  const label=root.querySelector('[data-wheel-label]');label.textContent='RESULTADO JÁ PERSISTIDO · REVELANDO PREMIAÇÃO';
-  wheel.closest('.reward-wheel-panel').scrollIntoView({behavior:reduced?'instant':'smooth',block:'center'});
-  if(!reduced){const rotation=2160+(rewardRotation(draw.rarity)??0);const effect=wheel.animate([{transform:'rotate(0deg)'},{transform:`rotate(${rotation}deg)`}],{duration:9500,easing:'cubic-bezier(.12,.75,.18,1)',fill:'forwards'});const timer=setInterval(tick,360);try{await effect.finished;}finally{clearInterval(timer);}}
-
- }
+ async function refresh(){if(busy)return;machine?.cancel('refresh');try{dashboard=await request();render();}catch(error){dashboard=null;render();root.querySelector('[data-reward-feedback]').textContent=error.message;}}
  const filterCatalog=()=>{root.querySelector('[data-catalog-results]').innerHTML=catalogMarkup(dashboard?.catalog,filters);};
  root.addEventListener('input',event=>{if(event.target.matches('[data-catalog-search]')){filters.search=event.target.value;filterCatalog();}});
  root.addEventListener('change',event=>{if(event.target.matches('[data-catalog-rarity]')){filters.rarity=event.target.value;filterCatalog();return;}});
- root.addEventListener('change',event=>{if(event.target.matches('[data-reward-season-select]')&&!busy){selected=event.target.value;render();return;}if(event.target.matches('[data-reward-sound]')){sound=event.target.checked;try{localStorage.setItem(soundKey,sound?'on':'muted');}catch{}}});
+ root.addEventListener('change',event=>{if(event.target.matches('[data-reward-season-select]')&&!busy){selected=event.target.value;render();}});
  root.addEventListener('click',async event=>{
   const button=event.target.closest('button');if(!button||busy)return;
   if(button.matches('[data-catalog-clear]')){filters.search='';filters.rarity='all';root.querySelector('[data-catalog-search]').value='';root.querySelector('[data-catalog-rarity]').value='all';filterCatalog();return;}
@@ -55,17 +38,22 @@ export function mountAdminRewards({token}){
   const card=button.closest('[data-reward-season]'),season=dashboard?.seasons?.find(s=>s.season_id===card?.dataset.rewardSeason);if(!season)return;
   if(button.matches('[data-reward-copy]')){try{await navigator.clipboard.writeText(rewardAnnouncement({...season,...season.draw.presentation_snapshot,reward_name:season.draw.reward_snapshot.name,rarity:season.draw.rarity}));root.querySelector('[data-reward-feedback]').textContent='Texto copiado.';}catch{root.querySelector('[data-reward-feedback]').textContent='Não foi possível copiar neste navegador.';}return;}
   const draw=button.matches('[data-reward-draw]'),action=draw?'draw':button.dataset.deliveryAction;if(!action)return;
+  if(draw&&machine?.mode!=='official')return;
   const confirmed=card.querySelector(draw?'[data-draw-identity]':'[data-delivery-identity]')?.checked;
   if(!confirmed){root.querySelector('[data-reward-feedback]').textContent='Confira e confirme a mesma vida antes de continuar.';return;}
-  if(draw)primeSound();busy=true;button.disabled=true;
+  const visual=machine,ticket=visual?.activity;if(draw){visual?.primeAudio();visual?.setWriting(true);}busy=true;button.disabled=true;
   try{
    const data=await request({action,season_id:season.season_id,life_id:season.draw?.life_id||season.eligibility.life_id,request_id:crypto.randomUUID(),confirm_identity:true,
     ...(draw?{}:{evidence:card.querySelector('[data-delivery-evidence]').value,component:Number(card.querySelector('[data-delivery-component]').value)})});
    dashboard=data.dashboard;if(!dashboard)throw Error('Atualize para consultar o resultado.');
-   if(draw&&!data.existing){const persisted=dashboard.seasons.find(s=>s.season_id===season.season_id)?.draw;if(!persisted)throw Error('Consulte o registro persistido.');await animate(persisted);}
-   render();root.querySelector('[data-reward-feedback]').textContent='Registro persistido confirmado.';
+   const reveal=draw&&!data.existing&&visual?.isActive(ticket);
+   const persisted=draw?dashboard.seasons.find(s=>s.season_id===season.season_id)?.draw:null;
+   if(draw&&!persisted)throw Error('Consulte o registro persistido.');
+   render();
+   if(reveal)await machine.revealOfficial(persisted);
+   root.querySelector('[data-reward-feedback]').textContent='Registro persistido confirmado.';
   }catch(error){root.querySelector('[data-reward-feedback]').textContent=error.message+' Use Atualizar premiações antes de qualquer nova tentativa.';}
-  finally{busy=false;}
+  finally{busy=false;machine?.setWriting(false);}
  });
  controllers.set(root,{refresh});refresh();
 }

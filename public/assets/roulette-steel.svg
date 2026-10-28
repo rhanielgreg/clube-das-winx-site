@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+ <!-- Decorative material authored for the interface; not a game-item image. -->
+ <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".66" numOctaves="3" seed="17" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+ <path fill="#82776f" d="M0 0h240v240H0z"/>
+ <path fill="#fff" filter="url(#grain)" opacity=".28" d="M0 0h240v240H0z"/>
+ <g fill="none" stroke="#151113" opacity=".55"><path d="M8 37l64-22m31 70l53-11m-12 137l72-35M18 170l45-8m74-128l30-16M42 116l12-6m165-21l-51 10M85 227l21-9"/><path d="M32 51l4 15m80 44l-12 24m74-6l22-5M53 199l5 15m168 10l-11-27"/></g>
+ <g stroke="#f8d6b2" opacity=".3"><path d="M8 38l64-22m31 70l53-11m-12 137l72-35M18 171l45-8"/></g>
+</svg>

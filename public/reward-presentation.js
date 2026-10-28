@@ -1,10 +1,7 @@
 import {escapeHtml as safe} from './contracts.js';
 import {rarityNames,rewardDate} from './rewards-view.js';
 export const rarityChances=Object.freeze({common:45,uncommon:30,rare:20,epic:4,legendary:1});
-export function rewardRotation(rarity){
- const centers={common:81,uncommon:216,rare:306,epic:349.2,legendary:358.2};
- return Object.hasOwn(centers,rarity)?360-centers[rarity]:null;
-}
+export {rewardRotation} from './roulette-model.js';
 const icons={common:'⚒',uncommon:'🎒',rare:'🧰',epic:'✦',legendary:'⚔'};
 export function wheelPreview(){return `<div class="reward-wheel-stage"><div class="reward-fixed-pointer" aria-hidden="true"></div><div class="reward-wheel" data-reward-wheel role="img" aria-label="Roda ilustrativa: comum 45%, incomum 30%, rara 20%, épica 4%, lendária 1%. O resultado oficial é decidido no backend."><span class="wheel-label wheel-common">COMUM<br>45%</span><span class="wheel-label wheel-uncommon">INCOMUM<br>30%</span><span class="wheel-label wheel-rare">RARA<br>20%</span></div><div class="reward-wheel-brand" aria-hidden="true"><img src="/assets/winx-zomboid-profile.webp" alt=""><span>CLUBE DAS<br><b>WINX</b></span></div></div><div class="reward-small-chances" aria-label="Faixas menores da roda"><span class="rarity-epic">Épica <strong>4%</strong></span><span class="rarity-legendary">Lendária <strong>1%</strong></span></div>`;}
 export function rewardProbability(catalog,reward){

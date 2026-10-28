@@ -59,7 +59,7 @@ test('Master15: permanent wheel and catalogue are presentation only, escaped and
  assert.doesNotMatch(publicRewards({draws:[{season_name:'T1',character_name:'Vida',rarity:'rare',delivery_state:'uncertain',operator_id:'PRIVATE-OPERATOR'}]}),/incerta|PRIVATE-OPERATOR|Entrega pendente/);
  const admin=await source('public/admin.html');for(const action of ['data-action-reset-baseline','data-action-open-close-modal','data-new-season-form','data-close-modal'])assert.ok(!admin.includes(action));
  assert.match(admin,/data-rename-season-form/);assert.match(admin,/LÍDER PROVISÓRIO/);
- const js=await source('public/admin-rewards.js');assert.match(js,/duration:9500/);assert.match(js,/prefers-reduced-motion/);assert.match(js,/await animate\(persisted\)/);
+ const js=await source('public/admin-rewards.js'),motion=await source('public/roulette-spin.js'),machine=await source('public/roulette-machine.js');assert.match(motion,/SPIN_DURATION=9500/);assert.match(machine,/prefers-reduced-motion/);assert.match(js,/await machine.revealOfficial\(persisted\)/);
 });
 
 test('Master15: telemetry separates fresh collection, inferred SFTP, public server and point-in-time ACL proof',()=>{
