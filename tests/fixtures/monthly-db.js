@@ -7,7 +7,7 @@ export async function createMonthlyTestDb({rewards=false}={}){
  for(const name of base)await db.exec(await readFile(new URL('../../migrations/'+name+'.sql',import.meta.url),'utf8'));
  await db.query("insert into ranking_seasons(id,name,slug,status,started_at)values($1,'Temporada 1','temporada-1','active','2026-10-20T01:05:18.930285Z')",[firstSeason]);
  const later=['008_season_schedule','009_correct_season1_deadline','010_life_integrity_guards','011_readonly_operations','012_monthly_championship_v2','013_medals_v2','014_product14_contracts','015_complete_public_recovery'];
- if(rewards)later.push('016_season_rewards','017_rewards_without_draw_deadline');
+ if(rewards)later.push('016_season_rewards','017_rewards_without_draw_deadline','018_private_delivery_and_operations','019_reward_catalog_v2');
  for(const name of later)await db.exec(await readFile(new URL('../../migrations/'+name+'.sql',import.meta.url),'utf8'));
  return db;
 }

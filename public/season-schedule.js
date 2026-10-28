@@ -11,10 +11,12 @@ function deadlineTimestamp(season) {
 export function seasonDeadline(season) {
   const timestamp=deadlineTimestamp(season);
   if(!Number.isFinite(timestamp))return null;
-  const at=new Date(timestamp-(season.deadline_exclusive===true?60000:0));
+  const at=new Date(timestamp);
   const date=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'}).format(at);
   const time=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at).replace(':','h');
-  return `Encerra em ${date} às ${time}`;
+  return season.deadline_exclusive===true
+    ? `Virada automática em ${date} às ${time} (Brasília) — limite exclusivo`
+    : `Encerra em ${date} às ${time}`;
 }
 
 // Apresentação somente: atingir zero nunca encerra a temporada nem certifica título.

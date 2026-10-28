@@ -1,5 +1,15 @@
 # Missão Master 07 — checkpoint consolidado
 
+
+## Master15 — continuidade segura (27/10/2026)
+
+Relatório e limites: [MASTER15.md](MASTER15.md). Base site119c517/coletor8a376bc preservada. Migrações aditivas018/019 aplicadas após backup/restauração ensaiados; SQL público sem `delivery_state`, catálogo v2 com24 recompensas e v1 histórico intacto. T1 ativa, nome temático registrado por RPC auditada, início exato e fronteira01/11/2026 00h00 Brasília preservados. Nenhum sorteio, campeão, vida ou desbloqueio real criado.
+
+Admin com navegação, roda permanente/estados reais, catálogo/histórico/entrega manual e telemetria com fonte. UI legada de reset/fechamento/início retirada; guards de API/SQL intactos. PostgreSQL17 real isolado:30 checks concorrentes/ACL/calendário/timeout após commit; Node22/24:193 por versão e Python39. Matriz responsiva1440/1600,768,390 sem overflow após correção da sidebar. Capturas e prova da publicação ficam na entrega; SHA efetivo deve ser lido em `/api/release`, não inferido de um push.
+
+Ponte SteamID↔ID TTF de cinco linhas da cópia SQLite comprovada, sem alterações em IDs/contas; arquivo atual idêntico ao anterior, três vivos/dois mortos. Falta geração inequívoca do mundo, cobertura completa da T1 e fronteiras temporais certificadas. `life-v1` continua desativado; Global/medalhas/prêmio não serão desbloqueados por heurística. Entrega automática/veículos desabilitados; jogo, credenciais, Auth e coletor não alterados.
+
+
 ## Master14 + missão consolidada — publicadas e verificadas (27/10/2026)
 
 Este bloco substitui as decisões anteriores de calendário/manual, desempate por UUID e catálogo100 ativo. Preservados todos os históricos e a autenticação existente. Relatório completo: [CONSOLIDATED-20261027.md](CONSOLIDATED-20261027.md); base técnica: [MISSION14.md](MISSION14.md).

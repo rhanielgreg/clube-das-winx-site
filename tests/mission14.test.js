@@ -48,7 +48,7 @@ test('calendário civil de Brasília: meses de 28/29/30/31 dias e viradas exatas
  assert.equal(belongsToSeason('2026-11-01T02:59:59.999Z',period),true);
  assert.equal(belongsToSeason(period.logical_end_at,period),false);
  const schedule={status:'active',schedule_verified:true,deadline_exclusive:true,scheduled_end_at:period.logical_end_at,closure_mode:'automatic'};
- assert.equal(seasonDeadline(schedule),'Encerra em 31/10/2026 às 23h59');
+ assert.equal(seasonDeadline(schedule),'Virada automática em 01/11/2026 às 00h00 (Brasília) — limite exclusivo');
  assert.equal(seasonCountdown(schedule,Date.parse('2026-11-01T02:59:30Z')),'0d 00h 00m 30s');
 });
 

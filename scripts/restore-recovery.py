@@ -38,7 +38,8 @@ def grants(kind,target,entries):
 
 def restore(source,database='postgres'):
     inspection=json.loads(subprocess.check_output(['docker','inspect',CONTAINER],text=True))[0]
-    if inspection['Config']['Labels'].get('winx.mission')!='08' or inspection['HostConfig']['NetworkMode']!='none' or inspection['HostConfig']['PortBindings']:
+    expected_label={'winx-mission08-restore-20261025':'08','winx-master15-postgres':'15'}.get(CONTAINER)
+    if not expected_label or inspection['Config']['Labels'].get('winx.mission')!=expected_label or inspection['HostConfig']['NetworkMode']!='none' or inspection['HostConfig']['PortBindings']:
         raise RuntimeError('Refusing target without disposable mission label, network isolation and no host ports')
     raw=Path(source).read_bytes();b=json.loads(raw)
     names=set(b['data'])
@@ -81,7 +82,8 @@ def restore(source,database='postgres'):
         sql+=grants('TABLE',name,t['grants'])
     for f in b['functions']:
         sql.append(f['definition']+';')
-        sql+=grants('FUNCTION','public.'+f['signature'],f['grants'])
+        signature=f['signature'] if f['signature'].startswith('public.') else 'public.'+f['signature']
+        sql+=grants('FUNCTION',signature,f['grants'])
     for t in b['tables']:
         sql+=[trigger+';' for trigger in t['triggers']]
     for seq in b['sequences']:
@@ -112,7 +114,9 @@ def restore(source,database='postgres'):
        'row_comparison':checked.strip(),'owner_runtime_limit':'container postgres is superuser; visitor/service attributes preserved'}))
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('source');parser.add_argument('--database',default='postgres');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('source');parser.add_argument('--database',default='postgres')
+    parser.add_argument('--container',choices=['winx-mission08-restore-20261025','winx-master15-postgres'],default=CONTAINER);args=parser.parse_args()
+    CONTAINER=args.container
     import re
     if not re.fullmatch(r'postgres|winx_recovery_[a-z0-9_]+',args.database):raise SystemExit('Refusing unexpected local database name')
     restore(args.source,args.database)

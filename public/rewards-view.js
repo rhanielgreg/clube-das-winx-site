@@ -13,7 +13,7 @@ export function rewardAnnouncement(draw){return `${draw.season_name} — ${draw.
 export function publicRewards(data){
   if(!Array.isArray(data?.draws))return '<p>Premiações indisponíveis nesta consulta.</p>';
   if(!data.draws.length)return '<p>Nenhuma premiação oficial sorteada. O sorteio exige temporada encerrada e campeão individual certificado.</p>';
-  return data.draws.map(draw=>`<article class="season-card"><small>PRÊMIO OFICIAL · ${safe(rarityNames[draw.rarity]||'')}</small><h3>${safe(draw.season_name)}</h3><p>${safe(draw.character_name)} · ${safe(draw.steam_username||'Conta verificada')}</p><p><strong>${safe(draw.reward_name)}</strong></p><p>${safe(rewardDate(draw.drawn_at))} · ${safe(deliveryNames[draw.delivery_state]||'Entrega pendente')}</p></article>`).join('');
+  return data.draws.map(draw=>`<article class="season-card"><small>PRÊMIO OFICIAL · ${safe(rarityNames[draw.rarity]||'')}</small><h3>${safe(draw.season_name)}</h3><p>${safe(draw.character_name)} · ${safe(draw.steam_username||'Conta verificada')}</p><p><strong>${safe(draw.reward_name)}</strong></p><p>${safe(rewardDate(draw.drawn_at))}</p></article>`).join('');
 }
 export async function mountPublicRewards(){
   let root=document.querySelector('[data-public-rewards]');

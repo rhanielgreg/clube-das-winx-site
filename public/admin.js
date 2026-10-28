@@ -3,6 +3,7 @@ import { createPasswordRecovery, requestPasswordRecovery, RECOVERY_INVALID } fro
 import { createAdminSession, forgetStoredAdminSession, retryAfterAt } from './admin-session.js';
 import { createRecoveryRequest } from './recovery-request.js';
 import { seasonDeadline } from './season-schedule.js';
+import { setupAdminShell, renderAdminOverview } from './admin-shell.js';
 import { mountAdminRewards } from './admin-rewards.js';
 import { mountFooter } from './footer.js';
 mountFooter();
@@ -221,6 +222,7 @@ async function fetchDashboardData(session = currentSession) {
 
 function renderDashboard(data) {
   currentDashboardData = data;
+  renderAdminOverview(data);
   mountAdminRewards({token:()=>currentSession?.access_token});
   if(data.monthly_automation===true){
     $$('[data-action-open-close-modal], [data-start-season-btn], [data-modal-confirm-btn], [data-action-reset-baseline]').forEach(button=>{button.disabled=true;button.title='Calendário mensal automático; operação manual legada bloqueada.';});
@@ -243,9 +245,11 @@ function renderDashboard(data) {
   $('[data-kpi-season]').textContent = activeSeason ? activeSeason.name : 'Nenhuma';
   $('[data-kpi-season-sub]').textContent = activeSeason ? 'Disputa ativa' : 'Ranking congelado';
   $('[data-kpi-players]').textContent = ranking.length;
-  $('[data-kpi-leader]').textContent = ranking[0]?.character_name || 'Nenhum';
-  $('[data-kpi-leader-kills]').textContent = ranking[0] ? `${formatNumber(ranking[0].kills_total)} kills` : 'Sem pontuação';
-  $('[data-kpi-sync]').textContent = sync?.last_success_at ? formatDate(sync.last_success_at) : 'Aguardando';
+  $('[data-kpi-leader]').textContent = ranking[0]?.steam_username || ranking[0]?.character_name || 'Nenhum';
+  $('[data-kpi-leader-kills]').textContent = ranking[0] ? `${formatNumber(ranking[0].kills_total)} kills observadas · não é campeão` : 'Sem pontuação';
+  const last=Date.parse(sync?.last_success_at||'');
+  $('[data-kpi-sync]').textContent = Number.isFinite(last) ? new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(last))+' BRT' : 'Aguardando';
+  $('[data-kpi-sync-status]').textContent = Number.isFinite(last) ? formatDate(sync.last_success_at)+' · registro da coleta' : 'Sem coleta confirmada nesta consulta';
 
   // Active Season
   const activeContent = $('[data-active-season-content]');
@@ -254,6 +258,7 @@ function renderDashboard(data) {
 
   if (activeSeason) {
     activeContent.style.display = 'block';
+    noSeasonContent.hidden = true;
     noSeasonContent.style.display = 'none';
     badge.textContent = 'DISPUTA ATIVA';
     badge.classList.remove('closed');
@@ -266,6 +271,7 @@ function renderDashboard(data) {
     $('[data-season-closure]').textContent = activeSeason.closure_mode==='automatic'?'Virada mensal automática · resultado sujeito à certificação':activeSeason.closure_mode==='manual'?'Encerramento manual':'Forma de encerramento não confirmada';
   } else {
     activeContent.style.display = 'none';
+    noSeasonContent.hidden = false;
     noSeasonContent.style.display = 'block';
     badge.textContent = 'CONGELADA';
     badge.classList.add('closed');
@@ -285,7 +291,7 @@ function renderDashboard(data) {
           <td><b style="color:var(--pink-soft)">${formatNumber(p.kills_total)}</b></td>
           <td>${formatNumber(p.kills_firearm)}</td>
           <td>${formatNumber(p.kills_melee)}</td>
-          <td>${formatDuration(p.survival_seconds)}</td>
+          <td>${p.survival_seconds==null?'<span title="Sem vida e fronteira sazonais certificadas">Tempo sazonal — não certificado</span>':formatDuration(p.survival_seconds)}</td>
           <td><span class="${p.alive === false ? 'dead' : p.alive === true ? 'alive' : 'unknown'}">${p.alive === false ? 'MORTO' : p.alive === true ? 'VIVO' : 'DESCONHECIDO'}</span></td>
           <td>${formatDate(p.last_updated_at)}</td>
         </tr>`;
@@ -473,111 +479,7 @@ function setupDashboardActions() {
     }
   });
 
-  // Zerar linha de base
-  $('[data-action-reset-baseline]')?.addEventListener('click', async () => {
-    if (!currentDashboardData?.activeSeason) {
-      alert('Nenhuma temporada ativa para zerar a linha de base.');
-      return;
-    }
-    const ok = confirm(
-      'Deseja zerar a linha de base para todos os personagens da Temporada Ativa?\n\n' +
-      'Isso fará com que TODAS as kills acumuladas anteriormente na história do servidor passem a contar na pontuação da Temporada 1.'
-    );
-    if (!ok) return;
-
-    try {
-      showToast('Redefinindo baseline...');
-      const res = await requestAdminApi('reset_baseline', {
-        season_id: currentDashboardData.activeSeason.season_id,
-      });
-      showToast(res.message);
-      const updated = await fetchDashboardData();
-      renderDashboard(updated);
-    } catch (err) {
-      alert(`Falha: ${err.message}`);
-    }
-  });
-
-  // Modal Encerramento
-  const modal = $('[data-close-modal]');
-  $('[data-action-open-close-modal]')?.addEventListener('click', () => {
-    if (!currentDashboardData?.activeSeason) return;
-    const leader = currentDashboardData.ranking[0];
-    $('[data-modal-season-name]').textContent = currentDashboardData.activeSeason.name;
-    $('[data-modal-winner-name]').textContent = leader ? leader.character_name : 'Resultado depende da validação final do banco';
-    $('[data-modal-winner-kills]').textContent = leader ? leader.kills_total : '—';
-    modal.style.display = 'grid';
-  });
-
-  $$('[data-modal-cancel]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      modal.style.display = 'none';
-    });
-  });
-
-  $('[data-modal-confirm-btn]')?.addEventListener('click', async () => {
-    if (!currentDashboardData?.activeSeason) return;
-    const btn = $('[data-modal-confirm-btn]');
-    btn.disabled = true;
-    btn.textContent = 'ENCERRANDO...';
-
-    try {
-      const leader = currentDashboardData.ranking[0];
-      const res = await requestAdminApi('close_season', {
-        season_id: currentDashboardData.activeSeason.season_id,
-        winner_character_id: leader?.profile_id || null,
-      });
-      modal.style.display = 'none';
-      showToast(res.message);
-      const updated = await fetchDashboardData();
-      renderDashboard(updated);
-    } catch (err) {
-      alert(`Falha ao encerrar: ${err.message}`);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'SIM, ENCERRAR AGORA';
-    }
-  });
-
-  // Formulário Nova Temporada
-  $('[data-new-season-form]')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const name = form.name.value.trim();
-    const slug = form.slug.value.trim().toLowerCase();
-    const reward = form.reward.value.trim();
-
-    if (!name || !slug) return;
-
-    if (currentDashboardData?.activeSeason) {
-      alert(
-        `Já existe a "${currentDashboardData.activeSeason.name}" ativa!\n\n` +
-        'Você precisa encerrar a temporada atual antes de abrir uma nova.'
-      );
-      return;
-    }
-
-    const btn = $('[data-start-season-btn]');
-    btn.disabled = true;
-    btn.textContent = 'INICIANDO...';
-
-    try {
-      const res = await requestAdminApi('start_season', {
-        name,
-        slug,
-        reward_message: reward,
-      });
-      showToast(res.message);
-      form.reset();
-      const updated = await fetchDashboardData();
-      renderDashboard(updated);
-    } catch (err) {
-      alert(`Erro: ${err.message}`);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'INICIAR TEMPORADA 🚀';
-    }
-  });
+  // Legacy writes remain rejected by api/admin and the SQL guards.
 }
 
 async function main() {
@@ -585,6 +487,7 @@ async function main() {
   setupAuthHandlers();
   setupRecoveryHandlers();
   setupDashboardActions();
+  setupAdminShell();
   setAuthControls(false);
   const publicConfig = await initSupabase();
   demoMode = publicConfig.demo === true;
@@ -598,9 +501,12 @@ async function main() {
     renderDashboard(await response.json());
     const banner = document.createElement('div');
     banner.className = 'demo-banner';
-    banner.textContent = 'PRÉVIA LOCAL · Dados fictícios. Iniciar, encerrar e resetar estão bloqueados. Exportação CSV apenas da demonstração.';
+    banner.textContent = publicConfig.demo_data_source==='restored'
+      ? 'PRÉVIA LOCAL · Cópia restaurada, somente leitura. Datas da coleta pertencem ao backup. Não é produção.'
+      : 'PRÉVIA LOCAL · Dados fictícios. Operações administrativas bloqueadas. Exportação CSV apenas da demonstração.';
     document.querySelector('main').prepend(banner);
     $$('[data-action-reset-baseline], [data-action-open-close-modal], [data-start-season-btn], [data-modal-confirm-btn], [data-action-logout]').forEach((button) => { button.disabled = true; });
+    $('[data-rename-season-form]').hidden=true;
     const warning = $('[data-service-key-warning]');
     if (warning) warning.innerHTML = '<p>Operações de escrita desativadas na prévia. Nenhuma credencial é necessária.</p>';
     return;

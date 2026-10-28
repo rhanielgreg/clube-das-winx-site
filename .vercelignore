@@ -13,6 +13,9 @@ scripts/rehearse-postgrest.py
 scripts/preview-server.js
 scripts/preview-public.js
 scripts/preview-achievements.js
+scripts/preview-master15.js
+scripts/test-postgres-concurrency.py
+node_modules/.master15*
 node_modules/.mission*
 *.db
 *.db-wal

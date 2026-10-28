@@ -96,10 +96,11 @@ export default async function handler(req, res) {
     const contract=await resolveDashboardContract();
     if (!contract.official) return send(res, 503, { error: officialContractPending });
     try {
-      const [rankingResult, seasonsResult, syncResult] = await Promise.all([
+      const [rankingResult, seasonsResult, syncResult, operations] = await Promise.all([
         callPublicRpc(contract.life?'get_public_ranking_life_v1':'get_public_ranking', { p_limit: 100 }),
         callPublicRpc('get_public_seasons_v2', { p_limit: 50 }),
         callPublicRpc(contract.life?'get_public_pipeline_status_v1':'get_public_ranking_status'),
+        config.serviceKey ? callServiceRpc('get_service_operations_v1').catch(()=>null) : null,
       ]);
 
       const sync = Array.isArray(syncResult.data) ? syncResult.data[0] ?? null : syncResult.data;
@@ -116,6 +117,8 @@ export default async function handler(req, res) {
         ranking: (rankingResult.data ?? []).map(row=>contract.version==='winx-v2'&&!contract.life
           ?{...row,life_played_seconds:row.survival_seconds,survival_seconds:null,time_scope:'unavailable_season'}:row),
         sync,
+        operations,
+        checked_at:new Date().toISOString(),
         ...(contract.version==='winx-v2'?{monthly_automation:true,competition_rules:'winx-v2',
           pending_certifications:seasons.filter(s=>s.outcome==='pending_certification').length}:{}),
         stale: isStale(sync?.last_success_at),

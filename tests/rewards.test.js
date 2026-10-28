@@ -104,7 +104,7 @@ test('PostgreSQL: premiações imutáveis, idempotência, ACLs, elegibilidade e 
    const winner=await setupWinner(db);await draw(db,winner);await delivery(db,winner,'begin_manual');
    await delivery(db,winner,'confirm_component',{component:0});
    assert.equal((await delivery(db,winner,'confirm_component',{component:1})).state,'confirmed_manual');
-   const publicResult=await value(db,'select get_public_rewards_v1()');assert.equal(publicResult.draws[0].delivery_state,'confirmed_manual');
+   const publicResult=await value(db,'select get_public_rewards_v1()');assert.equal(Object.hasOwn(publicResult.draws[0],'delivery_state'),false);
    assert.ok(!JSON.stringify(publicResult).includes('account_token'));assert.ok(!JSON.stringify(publicResult).includes(operator));
   });
   await scenario('reconciliação de componente nunca permite repetir o já confirmado',async()=>{

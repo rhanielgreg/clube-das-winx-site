@@ -9,7 +9,7 @@ test('marcador público confirma revisão sem divulgar configurações ou aceita
  try{
   process.env.COMPETITION_RULES_VERSION='disabled';process.env.VERCEL_GIT_COMMIT_SHA='a'.repeat(40);
   const read=response();await release({method:'GET'},read);
-  assert.deepEqual(read.body,{release:'mission14',commit:'a'.repeat(40),competition_contract:null,life_contract:null});
+  assert.deepEqual(read.body,{release:'master15',commit:'a'.repeat(40),competition_contract:null,life_contract:null});
   process.env.VERCEL_GIT_COMMIT_SHA='invalid';const invalid=response();await release({method:'GET'},invalid);assert.equal(invalid.body.commit,null);
   const write=response();await release({method:'POST'},write);assert.equal(write.code,405);
  }finally{if(old===undefined)delete process.env.COMPETITION_RULES_VERSION;else process.env.COMPETITION_RULES_VERSION=old;if(revision===undefined)delete process.env.VERCEL_GIT_COMMIT_SHA;else process.env.VERCEL_GIT_COMMIT_SHA=revision;}
