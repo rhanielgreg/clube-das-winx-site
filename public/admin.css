@@ -1198,3 +1198,46 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
     margin-top:45px
   }
 }
+
+/* Master16: operational readability and contained responsive navigation. */
+.admin-content{font-size:15px;line-height:1.65;min-width:0}
+.admin-content p,.admin-content label,.admin-content .admin-table{font-size:14px;line-height:1.65}
+.admin-content small,.admin-content .muted,.admin-content .kpi-sub,.admin-content summary,.admin-content .status-badge{font-size:12px;line-height:1.6}
+.admin-content .kpi-tile small,.admin-content .admin-table th{font-size:12px;letter-spacing:.04em}
+.admin-content .admin-panel h2{font-size:21px;line-height:1.35}
+.admin-content h3{font-size:18px;line-height:1.4}
+.admin-content h4{font-size:16px;line-height:1.4}
+.admin-content button,.admin-content .button,.admin-sidebar button{min-height:44px;font-size:12px;letter-spacing:.035em}
+.admin-content input:not([type=checkbox]),.admin-content select,.admin-content textarea{font-size:15px;min-height:44px;max-width:100%}
+.admin-content input[type=checkbox]{width:18px;height:18px;flex-shrink:0}
+.admin-content :focus-visible,.admin-sidebar :focus-visible{outline:3px solid #ff8bca;outline-offset:4px}
+.admin-content .admin-overview-grid{align-items:start}
+.admin-content .admin-wheel-shortcut{height:auto;min-height:0}
+.admin-content .admin-health-card small{font-size:13px}
+.admin-content .admin-health-card strong{font-size:14px}
+.admin-content .admin-health-card p{font-size:13px}
+.admin-content .admin-season-strip{padding:16px 24px}
+.admin-season-strip>p{margin:0;font-weight:600}
+.admin-content .history-card{padding:18px}
+.admin-content .admin-table th,.admin-content .admin-table td{padding:16px 12px}
+.admin-content .admin-table td small{color:#c8b8c2!important}
+.admin-acl-matrix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.admin-acl-matrix>div{border:1px solid #493241;padding:12px;border-radius:8px}
+.admin-acl-matrix dd{margin:3px 0 0;font-weight:700}
+.admin-memorial-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}
+.admin-memorial-grid article{padding:20px;border:1px solid #493241;border-radius:12px;background:#160f19}
+.admin-memorial-grid strong{font-size:32px}
+.admin-audit-list{list-style:none;padding:0;display:grid;gap:16px}
+.admin-audit-list li{border-left:3px solid #ed258f;padding:16px 20px;background:#160f19;overflow-wrap:anywhere}
+.admin-audit-list time{font-size:13px;color:#d8b7cb}
+.admin-content code{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:1100px){.admin-memorial-grid{grid-template-columns:1fr}.admin-content .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.admin-content{padding:22px 14px}.admin-sidebar button{font-size:12px;padding:10px 12px}.admin-content .admin-panel{padding:20px 16px}.admin-content .panel-header{flex-wrap:wrap;gap:12px}.admin-acl-matrix{grid-template-columns:1fr}.admin-content .admin-table{min-width:760px}.admin-content .table-scroll{max-width:100%;overflow-x:auto}.admin-page-heading h1{font-size:30px!important}.admin-content .status-badge{white-space:normal}.admin-content .admin-toolbar{flex-wrap:wrap}.admin-content .kpi-tile{min-width:0;overflow-wrap:anywhere}}
+@media(max-width:380px){.admin-content .kpi-grid{grid-template-columns:1fr}.admin-shortcut-content{flex-wrap:wrap}}
+
+@media(min-width:761px) and (max-width:1400px){.admin-content .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.admin-content .admin-deadline{font-size:22px;line-height:1.5}
+
+body.admin-body{min-width:0}
+
+.admin-content button,.admin-content .button,.admin-sidebar button{font-size:14px}

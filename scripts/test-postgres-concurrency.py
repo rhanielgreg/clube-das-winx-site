@@ -85,11 +85,11 @@ def main():
            '006_dashboard_release','005_life_read_contracts','007_controlled_life_activation']
     for name in order:run((ROOT/('migrations/'+name+'.sql')).read_text(encoding='utf8'),db)
     run(f"insert into ranking_seasons(id,name,slug,status,started_at)values('{SEASON}','Temporada 1','temporada-1','active','2026-10-20T01:05:18.930285Z');",db)
-    for number in range(8,20):
+    for number in range(8,21):
         matches=list((ROOT/'migrations').glob(f'{number:03d}_*.sql'))
         assert len(matches)==1
         run(matches[0].read_text(encoding='utf8'),db)
-    check('PostgreSQL17 real: 001–019 installed on synthetic template', True)
+    check('PostgreSQL17 real: 001–020 installed on synthetic template', True)
 
     db=database('draws');life=winner(db)
     results=parallel([draw(life) for _ in range(8)],db)
@@ -130,14 +130,31 @@ def main():
     else:check('death before draw prevents material award',results[1][0]!=0)
 
     db=database('calendar');run('select activate_product14_v2()',db)
+    # The same legacy RPC used by the real collector; identifiers are synthetic.
+    def observation(at, kills, digest):
+        return f"select ingest_player_observation('synthetic-account','synthetic-character','Isolated survivor',true,'{digest*64}','{at}',{kills},2,3,3600,'Synthetic account');"
+    run(observation('2026-10-31T23:00:00Z',100,'a'),db)
+    run(observation('2026-11-01T02:59:59Z',142,'b'),db)
+    before=run("select md5(string_agg(to_jsonb(s)::text,',' order by id)) from player_stat_snapshots s",db)
+
     check('T1 preserved before exclusive boundary',scalar("select reconcile_months_at_v2('2026-11-01T02:59:59.999999Z')",db)['transitions']==0)
     results=parallel(["select reconcile_months_at_v2('2026-11-01T03:00:00Z');" for _ in range(8)],db)
     check('8 concurrent calendar runs create exactly one T2',all(r[0]==0 for r in results) and sum(json.loads(r[1])['transitions'] for r in results)==1 and run('select count(*) from season_cycles_v2 where season_number=2',db)=='1')
     check('pending T1 does not prevent active T2 at same half-open boundary',scalar(f"select to_jsonb((select certification='pending_certification' and ends_at='2026-11-01T03:00:00Z' from season_cycles_v2 where season_id='{SEASON}') and (select starts_at='2026-11-01T03:00:00Z' and closed_at is null from season_cycles_v2 where season_number=2))",db))
+    check('calendar retry after committed boundary creates no second T2',scalar("select reconcile_months_at_v2('2026-11-01T03:00:00Z')",db)['transitions']==0)
+    archive=run("select md5(string_agg(to_jsonb(a)::text,',' order by profile_id)) from season_archive_v2 a",db)
+    run(observation('2026-11-01T03:00:00Z',147,'c'),db)
+    check('first boundary observation belongs only to T2 with a new baseline',scalar("select to_jsonb((select count(*) from player_stat_snapshots where observed_at='2026-11-01T03:00:00Z' and season_id=(select season_id from season_cycles_v2 where season_number=2))=1 and (select kills_total=0 and baseline_kills_total=147 from player_statistics_current where season_id=(select season_id from season_cycles_v2 where season_number=2)))",db))
+    run(observation('2026-11-01T03:05:00Z',150,'d'),db)
+    check('T2 accrues only post-baseline kills and T1 retains 42',scalar(f"select to_jsonb((select kills_total=3 from player_statistics_current where season_id=(select season_id from season_cycles_v2 where season_number=2)) and (select kills_total=42 from player_statistics_current where season_id='{SEASON}'))",db))
+    check('T1 snapshots and frozen archive unchanged after T2 ingestion',before==run("select md5(string_agg(to_jsonb(s)::text,',' order by id)) from player_stat_snapshots s where observed_at<'2026-11-01T03:00:00Z'",db) and archive==run("select md5(string_agg(to_jsonb(a)::text,',' order by profile_id)) from season_archive_v2 a",db))
+    late=run(observation('2026-11-01T02:59:59Z',151,'e'),db,fail=False)
+    check('late T1 reading rejected without corrupting T2 or archive',late[0]!=0 and archive==run("select md5(string_agg(to_jsonb(a)::text,',' order by profile_id)) from season_archive_v2 a",db))
+    check('pending identity never fabricates a winner or award',run('select count(*) from season_winners',db)=='0' and run('select count(*) from season_reward_draws_v1',db)=='0' and run('select count(*) from life_identities',db)=='0')
     run("select reconcile_months_at_v2('2028-03-01T03:00:00Z')",db)
     check('missed months and leap February: one active month, adjacent boundaries',scalar("select to_jsonb((select count(*) from ranking_seasons where status='active')=1 and not exists(select 1 from (select ends_at,lead(starts_at)over(order by season_number) next_start from season_cycles_v2)s where next_start is not null and ends_at<>next_start) and exists(select 1 from season_cycles_v2 where starts_at='2028-02-01T03:00:00Z' and ends_at='2028-03-01T03:00:00Z'))",db))
     for role in ['anon','authenticated']:
-        for fn in ['get_service_rewards_v1()','get_service_operations_v1()','reconcile_months_v2()',"reconcile_months_at_v2('2026-11-01T03:00:00Z')"]:
+        for fn in ['get_service_rewards_v1()','get_service_operations_v1()','get_service_admin_audit_v1()','reconcile_months_v2()',"reconcile_months_at_v2('2026-11-01T03:00:00Z')"]:
             check(role+' denied '+fn,run('set role '+role+'; select '+fn,db,fail=False)[0]!=0)
         check(role+' cannot access private table',run('set role '+role+';select * from season_reward_draws_v1',db,fail=False)[0]!=0)
     check('service_role cannot inject production clock',run("set role service_role;select reconcile_months_at_v2('2026-11-01T03:00:00Z')",db,fail=False)[0]!=0)

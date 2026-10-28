@@ -65,7 +65,7 @@ test('Master15: permanent wheel and catalogue are presentation only, escaped and
 test('Master15: telemetry separates fresh collection, inferred SFTP, public server and point-in-time ACL proof',()=>{
  const health={contract:'collection-health-v1',state:'healthy',last_success_at:'2026-10-27T12:00:00Z',server_time:'2026-10-27T12:01:00Z',latest_attempt_status:'success',consecutive_failures:0};
  const server={online:true,players:2,checkedAt:'2026-10-27T12:00:00Z',serverTime:'2026-10-27T12:01:00Z',validUntil:'2026-10-27T12:02:00Z'};
- const ops={contract:'admin-operations-v1',private_tables_rls:true,private_tables_denied:true,private_rpcs_denied:true,clock_private:true};
+ const ops={contract:'admin-operations-v1',checked_at:'2026-10-27T12:01:00Z',private_tables_rls:true,private_tables_denied:true,private_rpcs_denied:true,clock_private:true};
  let cards=telemetryCards({health,server,operations:ops});assert.equal(cards[0].tone,'good');assert.equal(cards[1].tone,'neutral');assert.match(cards[1].detail,/Não é teste/);assert.equal(cards[2].tone,'good');assert.match(cards[3].detail,/Não é monitoramento contínuo/);
  cards=telemetryCards({health,server,elapsed:121000});assert.equal(cards[0].tone,'neutral');assert.equal(cards[2].tone,'neutral');assert.equal(cards[3].tone,'neutral');
  assert.equal(telemetryCards({health,operations:{...ops,private_rpcs_denied:false}})[3].tone,'warning');
@@ -92,6 +92,9 @@ test('Master15 SQL/API: private delivery remains behind Admin; anonymous DTO has
   }
   await db.query('select activate_product14_v2()');
   const res=response();await adminApi({method:'GET',headers:{authorization:'Bearer valid-admin'}},res);assert.equal(res.code,200);assert.equal(res.body.operations.private_rpcs_denied,true);assert.equal(res.body.operations.life_enabled,false);
+  const auditRead=response();await adminApi({method:'GET',query:{view:'audit',limit:'1'},headers:{authorization:'Bearer valid-admin'}},auditRead);assert.equal(auditRead.code,200);assert.equal(auditRead.body.contract,'admin-audit-v1');
+  for(const before of ['0','-1','1;select 1','9223372036854775808']){const invalid=response();await adminApi({method:'GET',query:{view:'audit',before},headers:{authorization:'Bearer valid-admin'}},invalid);assert.equal(invalid.code,400);}
+  for(const token of ['invalid','common']){const denied=response();await adminApi({method:'GET',query:{view:'audit'},headers:{authorization:'Bearer '+token}},denied);assert.equal(denied.code,403);}
   for(const action of ['reset_baseline','close_season','start_season']){
    const res=response();await adminApi({method:'POST',headers:{authorization:'Bearer valid-admin'},body:{action,payload:{season_id:firstSeason,name:'Nome válido',slug:'nome-valido'}}},res);assert.equal(res.code,409);
   }

@@ -463,3 +463,25 @@
 .reward-wheel-panel .reward-confirm{
   color:#c8adc0
 }
+
+/* Master16: readable catalog and accessible minor wheel sectors. Geometry unchanged. */
+.reward-small-chances{display:flex;justify-content:center;gap:20px;margin:-6px 0 22px;flex-wrap:wrap;font-size:14px}
+.reward-small-chances span{border-bottom:3px solid var(--rarity-color,#e878cb);padding:6px 12px}
+.reward-small-chances .rarity-epic{border-color:#b35de4}.reward-small-chances .rarity-legendary{border-color:#e6c151}
+.admin-content .reward-catalog-columns{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:18px}
+.admin-content .reward-item{padding:20px 16px;display:flex;gap:12px;min-width:0}
+.admin-content .reward-item>div{min-width:0}
+.admin-content .reward-item h4{font-size:16px!important}
+.admin-content .reward-item p,.admin-content .reward-item small,.admin-content .reward-item summary{font-size:13px!important}
+.reward-item-icon{flex-shrink:0}
+.admin-content .reward-filters{display:flex;gap:16px;align-items:end;flex-wrap:wrap}
+.reward-filters label{display:grid;gap:6px;flex:1;min-width:180px}
+.reward-filters>p{flex-basis:100%;margin:0}
+.reward-process{font-size:13px!important;line-height:1.8}
+.admin-content .reward-available small{font-size:12px}
+.admin-content .reward-available strong{font-size:14px}
+.reward-pending-seasons{margin-top:20px}
+@media(max-width:1250px){.admin-content .reward-catalog-columns{grid-template-columns:repeat(2,minmax(0,1fr))}.reward-roulette-grid{grid-template-columns:1fr!important}}
+@media(max-width:760px){.admin-content .reward-catalog-columns{grid-template-columns:minmax(0,1fr)}.reward-filters label{min-width:0;flex-basis:100%}.reward-available{grid-template-columns:repeat(2,minmax(0,1fr))}.reward-wheel-stage{width:100%;max-width:480px}.reward-wheel-brand{max-width:40%}.admin-content .reward-toolbar select{max-width:100%;width:100%}.admin-content .reward-toolbar label{min-width:0}}
+
+@media(max-width:760px){.admin-content .reward-catalog-summary{grid-template-columns:1fr}.admin-content .reward-catalog-summary .kpi-tile{padding:16px}.admin-content .reward-catalog-summary small,.admin-content .reward-catalog-summary .kpi-sub{font-size:12px}}

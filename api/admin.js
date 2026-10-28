@@ -93,14 +93,22 @@ export default async function handler(req, res) {
   const config = getAdminConfig();
 
   if (req.method === 'GET') {
+    if(req.query?.view==='audit'){
+      const before=req.query.before,limit=req.query.limit??'20';
+      if((before!=null&&(!/^[1-9][0-9]{0,18}$/.test(String(before))||BigInt(before)>9223372036854775807n))||!/^([1-9]|[1-4][0-9]|50)$/.test(String(limit)))
+        return send(res,400,{error:'Paginação inválida.'});
+      try{return send(res,200,await callServiceRpc('get_service_admin_audit_v1',{p_before:before??null,p_limit:Number(limit)}));}
+      catch{return send(res,503,{error:'Trilha administrativa indisponível nesta consulta.'});}
+    }
     const contract=await resolveDashboardContract();
     if (!contract.official) return send(res, 503, { error: officialContractPending });
     try {
-      const [rankingResult, seasonsResult, syncResult, operations] = await Promise.all([
+      const [rankingResult, seasonsResult, syncResult, operations, audit] = await Promise.all([
         callPublicRpc(contract.life?'get_public_ranking_life_v1':'get_public_ranking', { p_limit: 100 }),
         callPublicRpc('get_public_seasons_v2', { p_limit: 50 }),
         callPublicRpc(contract.life?'get_public_pipeline_status_v1':'get_public_ranking_status'),
         config.serviceKey ? callServiceRpc('get_service_operations_v1').catch(()=>null) : null,
+        config.serviceKey ? callServiceRpc('get_service_admin_audit_v1').catch(()=>null) : null,
       ]);
 
       const sync = Array.isArray(syncResult.data) ? syncResult.data[0] ?? null : syncResult.data;
@@ -118,6 +126,7 @@ export default async function handler(req, res) {
           ?{...row,life_played_seconds:row.survival_seconds,survival_seconds:null,time_scope:'unavailable_season'}:row),
         sync,
         operations,
+        audit,
         checked_at:new Date().toISOString(),
         ...(contract.version==='winx-v2'?{monthly_automation:true,competition_rules:'winx-v2',
           pending_certifications:seasons.filter(s=>s.outcome==='pending_certification').length}:{}),

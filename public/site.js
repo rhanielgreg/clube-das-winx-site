@@ -1,3 +1,4 @@
+import {achievementCatalog} from './achievements-catalog.js';
 import { rankingClock, clockNow } from './ranking-clock.js';
 import { killBreakdown, killBreakdownText, rankingResidual } from './kill-breakdown.js';
 import { collectionCountdown } from './collection-countdown.js';
@@ -360,3 +361,7 @@ setInterval(() => { if (!document.hidden) refreshAll(); }, 120000);
 setInterval(() => { if (!document.hidden && !refreshing) loadRanking(); }, 30000);
 
 setInterval(()=>{if(!document.hidden&&!refreshing)loadStatus();},60000);
+
+// Criteria reference only: never grants a medal or infers an unlocked life.
+const criteriaHost=document.querySelector('[data-medal-criteria]');
+if(criteriaHost)criteriaHost.innerHTML=achievementCatalog.map(a=>`<details><summary>${safe(a.name)}</summary><p>${safe(a.description)}</p></details>`).join('');

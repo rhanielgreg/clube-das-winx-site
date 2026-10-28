@@ -3,7 +3,8 @@ import { createPasswordRecovery, requestPasswordRecovery, RECOVERY_INVALID } fro
 import { createAdminSession, forgetStoredAdminSession, retryAfterAt } from './admin-session.js';
 import { createRecoveryRequest } from './recovery-request.js';
 import { seasonDeadline } from './season-schedule.js';
-import { setupAdminShell, renderAdminOverview } from './admin-shell.js';
+import { setupAdminShell, renderAdminOverview, clearAdminOverview } from './admin-shell.js';
+import {rankingCsv} from './admin-export.js';
 import { mountAdminRewards } from './admin-rewards.js';
 import { mountFooter } from './footer.js';
 mountFooter();
@@ -107,6 +108,7 @@ function showRecovery(message = 'Validando seu link de recuperação…') {
   recoveryFlow = true;
   adminSession?.suspend();
   currentSession = null;
+  clearAdminOverview();
   $('[data-auth-card]').style.display = 'none';
   $('[data-admin-dashboard]').style.display = 'none';
   $('[data-admin-session]').style.display = 'none';
@@ -202,12 +204,13 @@ async function requestAdminApi(action, payload = {}) {
   return data;
 }
 
-async function fetchDashboardData(session = currentSession) {
+async function fetchDashboardData(session = currentSession, query = '') {
   if (!demoMode && !session?.access_token) return;
 
-  const response = await fetch('/api/admin', {
+  const response = await fetch('/api/admin'+query, {
     method: 'GET',
     headers: demoMode ? {} : { authorization: `Bearer ${session.access_token}` },
+    cache:'no-store',signal:AbortSignal.timeout(8000),
   });
 
   const data = await response.json();
@@ -220,10 +223,10 @@ async function fetchDashboardData(session = currentSession) {
   return data;
 }
 
-function renderDashboard(data) {
+function renderDashboard(data,{refreshRewards=true}={}) {
   currentDashboardData = data;
   renderAdminOverview(data);
-  mountAdminRewards({token:()=>currentSession?.access_token});
+  if(refreshRewards)mountAdminRewards({token:()=>currentSession?.access_token});
   if(data.monthly_automation===true){
     $$('[data-action-open-close-modal], [data-start-season-btn], [data-modal-confirm-btn], [data-action-reset-baseline]').forEach(button=>{button.disabled=true;button.title='Calendário mensal automático; operação manual legada bloqueada.';});
     const legacy=$('[data-new-season-form]');if(legacy)legacy.closest('section').hidden=true;
@@ -242,7 +245,7 @@ function renderDashboard(data) {
   if (keyWarn) keyWarn.style.display = admin.hasServiceKey ? 'none' : 'flex';
 
   // KPIs
-  $('[data-kpi-season]').textContent = activeSeason ? activeSeason.name : 'Nenhuma';
+  $('[data-kpi-season]').textContent = activeSeason ? `Temporada ${activeSeason.season_number||activeSeason.name?.match(/^Temporada\s+(\d+)/i)?.[1]||'ativa'}` : 'Nenhuma';
   $('[data-kpi-season-sub]').textContent = activeSeason ? 'Disputa ativa' : 'Ranking congelado';
   $('[data-kpi-players]').textContent = ranking.length;
   $('[data-kpi-leader]').textContent = ranking[0]?.steam_username || ranking[0]?.character_name || 'Nenhum';
@@ -264,7 +267,8 @@ function renderDashboard(data) {
     badge.classList.remove('closed');
 
     $('[data-season-title]').textContent = activeSeason.name;
-    $('[data-season-reward]').textContent = activeSeason.reward_message || 'Sem recompensa descrita.';
+    $('[data-season-reward]').textContent = 'Premiação pela Roleta dos Campeões após encerramento e certificação da vida campeã.';
+    const note=$('[data-season-note]');if(note){note.hidden=!activeSeason.reward_message;note.textContent=activeSeason.reward_message?`Nota da temporada: ${activeSeason.reward_message}`:'';}
     $('[data-season-id]').textContent = activeSeason.season_id;
     $('[data-season-start]').textContent = formatDate(activeSeason.started_at);
     $('[data-season-end]').textContent = seasonDeadline(activeSeason)||'Prazo não confirmado';
@@ -286,13 +290,13 @@ function renderDashboard(data) {
         const sub = p.steam_username && p.character_name !== p.steam_username ? `<br><small style="color:#8a7b84">${escapeHtml(p.character_name)}</small>` : '';
         return `
         <tr>
-          <td><strong>#${idx + 1}</strong></td>
+          <td><strong>${idx + 1}</strong></td>
           <td><b>${escapeHtml(displayName)}</b>${sub}</td>
           <td><b style="color:var(--pink-soft)">${formatNumber(p.kills_total)}</b></td>
           <td>${formatNumber(p.kills_firearm)}</td>
           <td>${formatNumber(p.kills_melee)}</td>
-          <td>${p.survival_seconds==null?'<span title="Sem vida e fronteira sazonais certificadas">Tempo sazonal — não certificado</span>':formatDuration(p.survival_seconds)}</td>
-          <td><span class="${p.alive === false ? 'dead' : p.alive === true ? 'alive' : 'unknown'}">${p.alive === false ? 'MORTO' : p.alive === true ? 'VIVO' : 'DESCONHECIDO'}</span></td>
+          <td>${p.survival_seconds==null?'<span aria-label="Tempo sazonal não certificado">—</span>':formatDuration(p.survival_seconds)}</td>
+          <td><span class="${p.alive === false ? 'dead' : p.alive === true ? 'alive' : 'unknown'}">${p.alive === false ? 'Morto na última observação' : p.alive === true ? 'Vivo na última observação' : 'Desconhecido'}</span></td>
           <td>${formatDate(p.last_updated_at)}</td>
         </tr>`;
       }).join('')
@@ -308,7 +312,7 @@ function renderDashboard(data) {
           <small>${s.status === 'active' ? 'EM ANDAMENTO' : 'ENCERRADA'}</small>
           <h4>${escapeHtml(s.name)}</h4>
           <p>${s.winner_name ? `Campeão: <b>${escapeHtml(s.winner_name)}</b> (${formatNumber(s.winner_kills)} kills)` : escapeHtml(seasonResult(s))}</p>
-          <p style="margin-top:4px;font-size:9px;color:#85777f">Início: ${formatDate(s.started_at)}</p>
+          <p class="muted">Início: ${formatDate(s.started_at)}</p>
         </div>
       `).join('')
       : '<div class="history-empty">Nenhuma temporada registrada no banco.</div>';
@@ -440,22 +444,7 @@ function setupDashboardActions() {
     }
 
     const seasonName = (currentDashboardData.activeSeason?.name || 'temporada').replace(/\s+/g, '_');
-    const rows = [
-      ['Posicao', 'Usuario_Steam', 'Personagem', 'Kills_Total', 'Kills_Arma', 'Kills_Melee', 'Tempo_Segundos', 'Estado', 'Ultima_Atualizacao'],
-      ...currentDashboardData.ranking.map((p, idx) => [
-        idx + 1,
-        csvField(p.steam_username),
-        csvField(p.character_name),
-        p.kills_total ?? '',
-        p.kills_firearm ?? '',
-        p.kills_melee ?? '',
-        p.survival_seconds ?? '',
-        p.alive === false ? 'MORTO' : p.alive === true ? 'VIVO' : 'DESCONHECIDO',
-        csvField(p.last_updated_at),
-      ]),
-    ];
-
-    const csvContent = '\ufeff' + rows.map((e) => e.join(';')).join('\n');
+    const csvContent = rankingCsv(structuredClone(currentDashboardData));
     const encodedUri = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -487,7 +476,18 @@ async function main() {
   setupAuthHandlers();
   setupRecoveryHandlers();
   setupDashboardActions();
-  setupAdminShell();
+  setupAdminShell({refreshAdmin:async()=>{
+    const session=currentSession;
+    if(!demoMode&&(!session||recoveryFlow))return null;
+    try{
+      const data=await fetchDashboardData(session);
+      if(!demoMode&&session!==currentSession)return null;
+      renderDashboard(data,{refreshRewards:false});return data;
+    }catch(error){
+      if(error.authRejected&&session===currentSession)await adminSession?.restore(session,{interactive:true});
+      throw error;
+    }
+  },readAudit:before=>fetchDashboardData(currentSession,'?view=audit'+(before?'&before='+encodeURIComponent(before):''))});
   setAuthControls(false);
   const publicConfig = await initSupabase();
   demoMode = publicConfig.demo === true;
@@ -537,6 +537,7 @@ async function main() {
     onAuthorized:(session,data)=>{currentSession=session;renderDashboard(data);},
     onLogin:({reason,interactive})=>{
       currentSession=null;currentDashboardData=null;
+      clearAdminOverview();
       $('[data-auth-card]').style.display='grid';
       $('[data-admin-dashboard]').style.display='none';
       $('[data-admin-session]').style.display='none';
