@@ -106,3 +106,5 @@ Rollback do site: voltar a servir a revisão anterior pelo projeto Vercel origin
 ### Limites da conferência de zoom
 
 Os atalhos de zoom enviados ao navegador embutido não alteraram sua escala (pixelRatio e largura CSS iguais). As larguras320–1600px e o foco foram testados realmente. O harness local `/__viewport?width=1440&scale=1.25&section=overview` (ou `scale=2`) permite ensaio explícito de escala/refluxo equivalente, sem modificar CSS ou preferências produtivas. Esse ensaio não deve ser rotulado como zoom nativo do navegador. A conferência nativa125/200% permanece distinguida no relatório.
+
+Conferência visual produtiva identificou um ajuste adicional de acessibilidade: contêineres das tabelas agora recebem foco para rolagem horizontal por teclado. O resumo RLS foi encurtado; o escopo completo fica recolhido junto à matriz, sem parágrafo duplicado. Nenhuma migração adicional.

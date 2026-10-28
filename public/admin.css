@@ -1241,3 +1241,5 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 body.admin-body{min-width:0}
 
 .admin-content button,.admin-content .button,.admin-sidebar button{font-size:14px}
+
+[data-admin-acl]{margin-top:24px}

@@ -74,5 +74,7 @@ test('Master16: authenticated refresh, history navigation and safe links are wir
  assert.match(shell,/history.pushState/);assert.match(shell,/addEventListener\('popstate'/);assert.match(shell,/addEventListener\('hashchange'/);
  assert.match(shell,/callbacks.refreshAdmin/);assert.match(admin,/refreshRewards:false/);assert.match(admin,/clearAdminOverview\(\)/);
  assert.match(await source('public/ranking.html'),/id="medalhas"/);
+ assert.match(await source('public/admin.html'),/table-scroll" tabindex="0" role="region"/);
+ assert.match(historyMarkup(),/tabindex="0" role="region"/);
  assert.doesNotMatch(await source('public/admin.html'),/Sem recompensa descrita|<th>#<\/th>/);
 });
