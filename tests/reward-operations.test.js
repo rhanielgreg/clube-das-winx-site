@@ -82,6 +82,12 @@ test('manual vehicle UI and diagnostic keep honest states and no embedded comman
  assert.match(readinessMarkup({accounts:[]},null),/Não consultada/);assert.match(readinessMarkup({accounts:[]},{checked_at:'2000-01-01',state:'connected'}),/expirada/);
  const markup=vehicleDeliveryMarkup([{id:'fixture',modality:'weekend',reward_snapshot:{name:'Synthetic',items:[{kind:'vehicle'}]}}],{available:true,vehicles:[]});assert.match(markup,/REGISTRAR ETAPA PRESENCIAL/);assert.ok(!markup.includes('addvehicle'));assert.ok(!markup.includes('data-remote-send'));
 });
+test('diagnostic freshness uses local receipt, tolerates Vercel clock skew and expires without a new query',()=>{
+ const recent={checked_at:new Date(Date.now()+60000).toISOString(),received_at:Date.now(),state:'not_configured',participants:[]};
+ assert.match(readinessMarkup({accounts:[]},recent),/Configuração privada incompleta/);
+ assert.match(readinessMarkup({accounts:[]},{...recent,received_at:Date.now()-91000}),/expirada/);
+ assert.match(readinessMarkup({accounts:[]},{...recent,received_at:Date.now()+10000}),/expirada/);
+});
 test('monthly manual vehicle audit preserves exact certified life and forfeiture guard',async()=>{
  const db=await createMonthlyTestDb({rewardsV3:true});try{
   await createRewardWinner(db);const e=await scalar(db,'select reward_eligibility_v1($1)',[firstSeason]);assert.equal(e.eligible,true);

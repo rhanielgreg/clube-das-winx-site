@@ -58,7 +58,7 @@ export function mountAdminRewards({token,demonstrationFixture=false}){
   if(button.matches('[data-rewards-refresh]'))return refresh();
    if(button.matches('[data-rcon-probe]')){
     busy=true;button.disabled=true;machine?.cancel('read-only-probe');
-    try{probe=await request(null,null,true);render();root.querySelector('.reward-readiness').open=true;root.querySelector('[data-rcon-probe]').focus();clearTimeout(probeTimer);
+    try{probe={...await request(null,null,true),received_at:Date.now()};render();root.querySelector('.reward-readiness').open=true;root.querySelector('[data-rcon-probe]').focus();clearTimeout(probeTimer);
      probeTimer=setTimeout(()=>{const status=root.querySelector('[data-rcon-probe-status]');if(status)status.textContent='Consulta expirada — verificar novamente';},90000);
     }catch{root.querySelector('[data-reward-feedback]').textContent='Conexão não comprovada. Nenhum envio foi iniciado.';button.disabled=false;}
     finally{busy=false;}return;

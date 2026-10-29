@@ -18,7 +18,7 @@ Mantidos literalmente os IDs fornecidos, sem inferir namespace Base, variantes o
 
 ## Backend RCON
 
-GET administrativo ?probe=rcon executa exclusivamente players, sem SQL de escrita, sem reserva de prêmio e sem comando fornecido pelo cliente. Exige a mesma autenticação ADMIN_EMAIL antes de ler configuração ou abrir conexão. Retorna horário, resultado e presença por ID cadastrado; não retorna host, porta, senha, SteamID completo ou nomes de jogadores não cadastrados. Resultado tem validade visual de 90 segundos e não certifica identidade ou entrega.
+GET administrativo ?probe=rcon executa exclusivamente players, sem SQL de escrita, sem reserva de prêmio e sem comando fornecido pelo cliente. Exige a mesma autenticação ADMIN_EMAIL antes de ler configuração ou abrir conexão. Retorna horário, resultado e presença por ID cadastrado; não retorna host, porta, senha, SteamID completo ou nomes de jogadores não cadastrados. Resultado tem validade visual de 90 segundos desde o recebimento local, sem depender da diferença de relógio entre Vercel e navegador e não certifica identidade ou entrega.
 
 Variáveis privadas necessárias: WINX_RCON_HOST, WINX_RCON_PORT, WINX_RCON_PASSWORD. WINX_REMOTE_DELIVERY_ENABLED controla envio, não a consulta. Não inserir valores no chat, código, logs ou navegador. O diagnóstico funciona com a flag de envio desligada. Proteção da rota é requisito separado: RCON TCP nativo não oferece TLS. Acesso externo da POC não comprova firewall/rota do executor Vercel.
 
@@ -54,4 +54,4 @@ O relatório externo da entrega deve registrar resultado do ensaio, situação r
 
 ## Aplicação verificada
 
-Em 29/10/2026, 024 foi aplicada no projeto nykhcytysswjdynjosib após restauração de uma cópia atual com 38 tabelas, 87 funções e 12.113 observações, e ensaio da migração nessa cópia. Os dados até id 12115 e as 87 funções anteriores permaneceram idênticos por hash. As três tabelas novas ficaram vazias com RLS e acesso direto negado aos papéis públicos e service_role; as RPCs novas ficaram privadas. T1 permaneceu aberta, catálogo ativo 24 intacto e flags weekly_enabled/remote_enabled false. PostgreSQL real isolado aprovou 23 verificações; Node 22/24 aprovou 238 testes em cada versão. Nada disso comprova conexão RCON produtiva ou entrega física de veículo.
+Em 29/10/2026, 024 foi aplicada no projeto nykhcytysswjdynjosib após restauração de uma cópia atual com 38 tabelas, 87 funções e 12.113 observações, e ensaio da migração nessa cópia. Os dados até id 12115 e as 87 funções anteriores permaneceram idênticos por hash. As três tabelas novas ficaram vazias com RLS e acesso direto negado aos papéis públicos e service_role; as RPCs novas ficaram privadas. T1 permaneceu aberta, catálogo ativo 24 intacto e flags weekly_enabled/remote_enabled false. PostgreSQL real isolado aprovou 23 verificações; Node 22/24 aprovou 239 testes em cada versão. Nada disso comprova conexão RCON produtiva ou entrega física de veículo.
