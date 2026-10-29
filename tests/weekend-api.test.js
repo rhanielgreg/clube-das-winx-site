@@ -17,9 +17,10 @@ test('weekly/remote HTTP operations preserve ADMIN_EMAIL, reject unauthorized re
    if(url.endsWith('get_service_weekend_v3'))return Response.json({message:'SCHEMA MISSING PRIVATE DETAIL'},{status:404});
    throw Error('Unexpected mutation');
   });
-  for(const action of ['weekly_register','weekly_draw','weekly_receipt','remote_prepare','remote_send']){
+  for(const action of ['weekly_register','weekly_draw','weekly_receipt','remote_prepare','remote_send','vehicle_record']){
    const res=response();await adminRewards({method:'POST',headers:{authorization:'Bearer fixture'},body:{action,command:'quit'}},res);assert.equal(res.code,403);
   }
+  const diagnostic=response();await adminRewards({method:'GET',headers:{authorization:'Bearer fixture'},query:{probe:'rcon'}},diagnostic);assert.equal(diagnostic.code,403);
   assert.equal(rpcCalls,0);authorized=true;
   const get=response();await adminRewards({method:'GET',headers:{authorization:'Bearer fixture'},query:{}},get);
   assert.equal(get.code,200);assert.equal(get.body.contract,'season-rewards-v1');assert.equal(get.body.weekly.available,false);

@@ -13,7 +13,7 @@ const expected=['collector_locks','collector_runs','game_players','game_characte
  'life_identities','life_observations','achievement_definitions','life_achievements','dashboard_rollout_state'];
 const extensions=['product14_state','season_cycles_v2','season_archive_v2','season_uncertain_intervals_v2',
  'medal_definitions_v2','medal_baselines_v2','medal_unlocks_v2','source_epochs_v2','season_admin_audit_v2',
- 'reward_catalogs_v1','season_reward_draws_v1','reward_delivery_state_v1','reward_delivery_components_v1','reward_events_v1','roulette_release_v3','reward_accounts_v3','weekend_reward_draws_v3','weekend_delivery_v3','weekend_reward_events_v3','remote_reward_components_v3','remote_reward_events_v3','remote_reward_replies_v3','weekend_reward_receipts_v3'];
+ 'reward_catalogs_v1','season_reward_draws_v1','reward_delivery_state_v1','reward_delivery_components_v1','reward_events_v1','roulette_release_v3','reward_accounts_v3','weekend_reward_draws_v3','weekend_delivery_v3','weekend_reward_events_v3','remote_reward_components_v3','remote_reward_events_v3','remote_reward_replies_v3','weekend_reward_receipts_v3','reward_account_events_v3','vehicle_deliveries_v3','vehicle_delivery_events_v3'];
 function grants(kind,target,entries=[]) {
  return [`revoke all on ${kind} ${target} from public,anon,authenticated,service_role;`,
  ...entries.map(g=>`grant ${g.privilege} on ${kind} ${target} to ${role(g.role)}${g.grantable?' with grant option':''};`)];

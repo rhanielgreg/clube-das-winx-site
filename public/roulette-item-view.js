@@ -11,7 +11,7 @@ export function itemArtwork(items,build=itemAssetSource.build){
   return `<span class="machine-component ${asset?'':'is-missing'}" data-item-icon><span class="machine-component-fallback" role="img" aria-label="Ícone não verificado ou indisponível">◇</span>${asset?`<img src="${safe(asset.src)}" alt="${safe(label)} — ícone da Build ${safe(asset.build)}" width="${asset.width}" height="${asset.height}" decoding="async" data-verified-item-icon>`:''}</span>`;
  }).join('');
 }
-export function itemQuantities(items,build=itemAssetSource.build){return items.map((item,index)=>`${safe(item.quantity)} × ${safe(verifiedItemAsset(item.script_id,build)?.label||`componente ${index+1}`)}`).join(' · ');}
+export function itemQuantities(items,build=itemAssetSource.build){return items.map((item,index)=>`${safe(item.quantity)} × ${safe(item.kind==='vehicle'?`veículo ${item.script_id} (presencial)`:verifiedItemAsset(item.script_id,build)?.label||`componente ${index+1}`)}`).join(' · ');}
 export function itemImageNote(items,build=itemAssetSource.build){
  if(items.some(i=>!verifiedItemAsset(i.script_id,build)))return 'Símbolo ilustrativo para componente sem imagem verificada.';
  return items.some(i=>verifiedItemAsset(i.script_id,build).variant_count>1)?'Ícones representativos de variantes do mesmo ID. Aparência e condição da entrega não são certificadas pela imagem.':`Ícones do jogo · Build ${itemAssetSource.build}. A imagem não certifica a condição da entrega.`;

@@ -1,9 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
+import {EventEmitter} from 'node:events';
 import {randomUUID} from 'node:crypto';
 import {rconPacket,readRconFrames,connectRcon,addItemCommand,onlineUsernames,rconConfig} from '../lib/rcon-client.js';
 import {executeRemoteReward,planHash,publicPlan,sanitizeRconReply} from '../lib/remote-rewards.js';
+
+test('RCON absolute deadline cancels an unresolved connection without authentication or command writes',async t=>{
+ const socket=new EventEmitter();let writes=0,destroyed=0;
+ socket.setTimeout=()=>socket;socket.write=()=>{writes++;};socket.destroy=()=>{destroyed++;socket.emit('close');};
+ t.mock.method(net,'createConnection',()=>socket);
+ await assert.rejects(connectRcon({host:'SYNTHETIC-NO-DNS',port:1234,password:'PRIVATE-SYNTHETIC',timeout:25}));
+ assert.equal(writes,0);assert.equal(destroyed,1);
+});
 
 test('RCON framing: split/coalesced packets, auth rejection, malicious framing and command allowlist',()=>{
  const packet=rconPacket(42,2,'players');assert.equal(readRconFrames(packet.subarray(0,8)).frames.length,0);
@@ -37,6 +46,7 @@ test('RCON actual loopback TCP: authenticate, fragmented response, read-only pre
   await assert.rejects(client.command('UNANSWERED-SYNTHETIC-COMMAND'));client.close();
   assert.deepEqual(commands,['players','UNANSWERED-SYNTHETIC-COMMAND']);
   await assert.rejects(connectRcon({...config,password:'WRONG-SYNTHETIC'}),error=>!error.message.includes('SYNTHETIC'));
+  const closing=await connectRcon(config),pending=closing.command('UNANSWERED-ON-CLOSE');const rejected=assert.rejects(pending);closing.close();await rejected;
  }finally{serverSocket?.destroy();await new Promise(resolve=>server.close(resolve));}
 });
 

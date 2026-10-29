@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const backup=parseRecovery(await readFile(process.argv[2],'utf8'));
 const cutoff=Math.max(...backup.data.player_stat_snapshots.map(r=>Number(r.id)));
 if(!Number.isSafeInteger(cutoff))throw Error('Unsafe snapshot cutoff');
-const migrations=await Promise.all(['021_weekend_rewards','022_remote_reward_attempts','023_reward_receipts'].map(n=>readFile(new URL('../migrations/'+n+'.sql',import.meta.url),'utf8')));
+const migrations=await Promise.all(['021_weekend_rewards','022_remote_reward_attempts','023_reward_receipts','024_vehicle_delivery_and_participants'].map(n=>readFile(new URL('../migrations/'+n+'.sql',import.meta.url),'utf8')));
 const proof=await rehearseRecovery(backup,{migrations,inspect:async db=>{
  const value=async sql=>Object.values((await db.query(sql)).rows[0])[0];
  const release=await value('select to_jsonb(s) from roulette_release_v3 s');
