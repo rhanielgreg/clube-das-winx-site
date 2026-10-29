@@ -4,27 +4,42 @@
 import http from 'node:http';
 import path from 'node:path';
 import {readFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {createMonthlyTestDb} from '../tests/fixtures/monthly-db.js';
+import {setupWeekend,weeklyDraw} from '../tests/fixtures/weekend-db.js';
 import {createRewardWinner} from '../tests/fixtures/reward-winner.js';
 import adminRewards from '../lib/admin-rewards.js';
 const official=process.argv.includes('--official-fixture');
+// TCP is not intercepted by the HTTP fixture. Never inherit real RCON capability.
+for(const key of ['WINX_RCON_HOST','WINX_RCON_PORT','WINX_RCON_PASSWORD','WINX_REMOTE_DELIVERY_ENABLED'])delete process.env[key];
+const weeklyFixture=process.argv.includes('--weekend-fixture');
+const receiptFixture=process.argv.includes('--receipt-fixture');
+if(receiptFixture&&!weeklyFixture)throw Error('Receipt fixture requires an isolated weekly award');
+if(official&&weeklyFixture)throw Error('Fixtures must remain separate');
 const reduced=process.argv.includes('--reduced-motion');
 // Explicit media-preference emulation for both JS and CSS in this test fixture.
 const reducedPreference=reduced?'<style>.roulette-v2 *{animation:none!important;scroll-behavior:auto!important}.roulette-v2 .machine-victory h2{transform:none}</style><script>const nativeMatch=window.matchMedia.bind(window);window.matchMedia=q=>q==="(prefers-reduced-motion: reduce)"?{matches:true,media:q,addEventListener(){},removeEventListener(){}}:nativeMatch(q);</script>':'';
 const missingKatana=process.argv.includes('--missing-katana-icon');
 const adminLayout=process.argv.includes('--admin-layout');
 const port=Number(process.argv.find(a=>a.startsWith('--port='))?.slice(7)||4180);
-if(![4180,4181,4182].includes(port))throw Error('Only dedicated loopback fixture ports are permitted.');
-const db=await createMonthlyTestDb({rewards:true});
-if(official)await createRewardWinner(db);else await db.query('select activate_product14_v2()');
+if(![4180,4181,4182,4183,4184,4185,4186].includes(port))throw Error('Only dedicated loopback fixture ports are permitted.');
+const fixture=weeklyFixture?await setupWeekend():null;
+const db=fixture?.db||await createMonthlyTestDb({rewardsV3:true});
+if(fixture){const seeded=await weeklyDraw(db,fixture.account);
+ if(receiptFixture){const attempt=randomUUID(),op='f0000000-0000-4000-8000-000000000009';
+  await db.query('select claim_remote_reward_v3($1,$2,$3,$4)',['weekend',seeded.draw.id,attempt,op]);
+  for(const component of [0,1])await db.query('select finish_remote_reply_v3($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+   ['weekend',seeded.draw.id,attempt,component,'uncertain','a'.repeat(64),20,op,'SYNTHETIC UNCERTAIN RESPONSE: no actual game IO']);
+ }
+}
+if(official)await createRewardWinner(db);else if(!weeklyFixture)await db.query('select activate_product14_v2()');
 process.env.SUPABASE_URL='https://fixture.invalid';process.env.SUPABASE_PUBLISHABLE_KEY='fixture';process.env.SUPABASE_SERVICE_ROLE_KEY='fixture';process.env.ADMIN_EMAIL='admin@fixture.invalid';delete process.env.COMPETITION_RULES_VERSION;delete process.env.LIFE_CONTRACT_VERSION;
 const statistics={postRequests:0,mutationRpcCalls:0,requests:[]};
 globalThis.fetch=async(input,options={})=>{
  const url=new URL(input);if(url.host!=='fixture.invalid')throw Error('External IO denied in isolated fixture.');
  if(url.pathname==='/auth/v1/user')return options.headers.Authorization==='Bearer fixture-ui-token'?Response.json({id:'f0000000-0000-4000-8000-000000000009',email:'admin@fixture.invalid'}):Response.json({}, {status:401});
  const name=url.pathname.split('/').at(-1),read=/^get_(public|service)_/.test(name);
- if(!read){statistics.mutationRpcCalls++;if(!official||!['draw_season_reward_v1','record_reward_delivery_v1'].includes(name))throw Error('Write RPC denied.');}
+ if(!read){statistics.mutationRpcCalls++;if(!(official&&['draw_season_reward_v1','record_reward_delivery_v1'].includes(name))&&!(receiptFixture&&name==='record_weekend_receipt_v3'))throw Error('Write RPC denied.');}
  const args=JSON.parse(options.body||'{}'),parameters=Object.keys(args).map((key,i)=>key+' => $'+(i+1)).join(',');
  try{const result=await db.query('select public.'+name+'('+parameters+') result',Object.values(args));return Response.json(result.rows[0].result);}catch{return Response.json({error:'Isolated PostgreSQL rejected the operation.'},{status:409});}
 };
@@ -40,7 +55,7 @@ const baseline=await dataHash(),root=path.resolve('public');
 let layoutBody=null;
 if(adminLayout){
  const html=await readFile(path.join(root,'admin.html'),'utf8');
- const header=html.match(/<header\b[\s\S]*?<\/header>/)[0].replace('ADMINISTRAÇÃO</span>','TESTE LOCAL · SINTÉTICO</span>').replace('data-admin-session style="display:none;"','data-admin-session').replace('Sessão de administrador',official?'Fixture oficial sintética':'Escritas bloqueadas');
+ const header=html.match(/<header\b[\s\S]*?<\/header>/)[0].replace('ADMINISTRAÇÃO</span>','TESTE LOCAL · SINTÉTICO</span>').replace('data-admin-session style="display:none;"','data-admin-session').replace('Sessão de administrador',official?'Fixture oficial sintética':receiptFixture?'Recibos sintéticos · sem envio':'Escritas bloqueadas');
  const sidebar=html.match(/<aside\b[\s\S]*?<\/aside>/)[0];
  const heading=html.slice(html.indexOf('<div class="admin-page-heading">'),html.indexOf('<div class="admin-alert alert-warning"'));
  layoutBody=`${header}<main class="admin-container"><div class="admin-dashboard"><div class="admin-workspace">${sidebar}<div class="admin-content">${heading}<section data-admin-view="overview" hidden><p>Fora da roleta. Fixture sintética; nenhuma alteração no campeonato.</p></section><div data-admin-rewards></div></div></div></div></main>`;
@@ -51,12 +66,12 @@ const server=http.createServer(async(req,res)=>{
   if(!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(req.headers.host||''))return json(403,{});
   const url=new URL(req.url,'http://127.0.0.1');statistics.requests.push({method:req.method,path:url.pathname});if(statistics.requests.length>500)statistics.requests.shift();
   if(req.method==='POST')statistics.postRequests++;
-  if(req.method!=='GET'&&!(official&&req.method==='POST'&&url.pathname==='/api/admin-rewards'))return json(405,{error:'Isolated demonstration server rejects all writes.'});
-  if(url.pathname==='/__proof')return json(200,{fixture:true,officialFixture:official,reducedMotionFixture:reduced,missingKatanaIconFixture:missingKatana,adminLayoutFixture:adminLayout,...statistics,baselineDataHash:baseline,currentDataHash:await dataHash(),
+  if(req.method!=='GET'&&!((official||receiptFixture)&&req.method==='POST'&&url.pathname==='/api/admin-rewards'))return json(405,{error:'Isolated demonstration server rejects all writes.'});
+  if(url.pathname==='/__proof')return json(200,{fixture:true,officialFixture:official,weekendFixture:weeklyFixture,receiptFixture,reducedMotionFixture:reduced,missingKatanaIconFixture:missingKatana,adminLayoutFixture:adminLayout,...statistics,baselineDataHash:baseline,currentDataHash:await dataHash(),
    officialDraws:Number((await db.query('select count(*) n from season_reward_draws_v1')).rows[0].n),rewardEvents:Number((await db.query('select count(*) n from reward_events_v1')).rows[0].n)});
   if(url.pathname==='/api/admin-rewards'){
-   let body='';for await(const part of req){body+=part;if(body.length>12000)return json(413,{});}let status=200;
-   return await adminRewards({method:req.method,headers:req.headers,body:body?JSON.parse(body):undefined,query:{}},{setHeader:(k,v)=>res.setHeader(k,v),status(value){status=value;return this;},json(data){json(status,data);}});
+   let body='';for await(const part of req){body+=part;if(body.length>12000)return json(413,{});}let status=200;if(receiptFixture&&req.method==='POST'&&JSON.parse(body||'{}').action!=='weekly_receipt')return json(405,{error:'Only synthetic receipt reconciliation permitted.'});
+   return await adminRewards({method:req.method,headers:req.headers,body:body?JSON.parse(body):undefined,query:Object.fromEntries(url.searchParams)},{setHeader:(k,v)=>res.setHeader(k,v),status(value){status=value;return this;},json(data){json(status,data);}});
   }
   if(url.pathname==='/'){
    res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});

@@ -113,3 +113,36 @@
 .roulette-v2 .machine-chamber-heading .machine-plate{flex:1 1 390px;max-width:620px;margin:0}
 .roulette-v2 .machine-chamber-heading .machine-mode-note{max-width:280px;margin:0}
 @media(max-width:760px){.roulette-v2 .machine-chamber-heading{display:grid;gap:10px}.roulette-v2 .machine-chamber-heading .machine-mode-note{max-width:none;font-size:11px!important}}
+
+/* Roleta 3: operational modes share the existing, mathematically unchanged machine. */
+.roulette-v3 .machine-chamber{background:radial-gradient(ellipse at 50% 35%,#8e175a36,transparent 62%),linear-gradient(110deg,#06070bcc,transparent 25% 75%,#06070bcc),repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 74px),linear-gradient(135deg,#242028,#0a090e 48%,#21131e)}
+.roulette-v3 .machine-stage{margin-bottom:40px}
+.roulette-v3 .machine-rim-plates{position:absolute;inset:0;z-index:5;pointer-events:none}
+.roulette-v3 .machine-rim-plates span{position:absolute;bottom:0;padding:7px 12px;display:grid;gap:2px;border:2px solid currentColor;border-radius:5px;background:linear-gradient(135deg,#4a414b,#141218 48%,#39303b);box-shadow:inset 0 1px #ffffff65,0 4px 8px #0009;font-size:11px;font-weight:800;line-height:1.2;letter-spacing:.04em}
+.roulette-v3 .machine-rim-plates span:before,.roulette-v3 .machine-rim-plates span:after{content:'';position:absolute;top:4px;width:3px;height:3px;border-radius:50%;background:#aaa}
+.roulette-v3 .machine-rim-plates span:before{left:4px}.roulette-v3 .machine-rim-plates span:after{right:4px}
+.roulette-v3 .machine-rim-plates .rarity-epic{left:5%;color:#cf92ff;transform:rotate(15deg)}
+.roulette-v3 .machine-rim-plates .rarity-legendary{right:5%;color:#f2cc66;transform:rotate(-15deg)}
+.roulette-v3 .machine-participants{max-width:680px;margin:auto;text-align:left;display:grid;gap:12px}
+.roulette-v3 .machine-participants select{width:100%;max-width:100%}
+.roulette-v3 .machine-participants details{padding:12px;border:1px solid #634251;border-radius:8px;background:#120d14}
+.roulette-v3 .machine-participants form{display:grid;gap:12px;padding-top:12px}
+.roulette-v3 .machine-participants input:not([type=checkbox]){width:100%;min-width:0;padding:12px;background:#201520;color:#fff;border:1px solid #785063;border-radius:6px}
+.roulette-v3 .machine-release-reasons{color:#e3bc85;font-size:13px;line-height:1.6;padding-left:22px}
+.roulette-v3 .machine-information{align-items:start}
+.roulette-v3 .machine-situation{display:grid;grid-template-columns:minmax(90px,1fr) 2fr;gap:10px 16px;text-align:left;margin:16px 0}
+.roulette-v3 .machine-situation dt{color:#cca3b8}.roulette-v3 .machine-situation dd{margin:0;overflow-wrap:anywhere}
+.roulette-v3 .machine-persisted-prize{display:grid;justify-items:center;gap:8px;max-width:640px;margin:16px auto;text-align:center}
+.roulette-v3 .machine-persisted-prize .machine-component{width:110px;height:110px}
+.roulette-v3 .machine-persisted-prize .machine-component img{width:auto;height:auto;max-width:90px;max-height:90px;image-rendering:pixelated}
+.roulette-v3 .machine-persisted-prize h3,.roulette-v3 .machine-persisted-prize p{margin:2px 0}
+.roulette-v3 .machine-prize-preview{text-align:center}.roulette-v3 .machine-victory h2{overflow-wrap:anywhere}
+.roulette-v3 .machine-victory .machine-persisted-prize{margin:8px auto;padding:10px}
+.roulette-v3 .machine-victory .machine-component{width:76px;height:76px}
+.roulette-v3 .machine-victory .machine-component img{max-width:60px;max-height:60px}
+.roulette-v3 .machine-victory .machine-persisted-prize>p:last-child,.roulette-v3 .machine-victory .machine-persisted-prize>p:nth-last-child(2){display:none}
+.roulette-v3 .machine-asset-credit{max-width:780px;margin:16px auto 0;line-height:1.5}
+.remote-confirm-dialog{max-width:min(620px,94vw);max-height:90dvh;overflow:auto;background:#18101a;color:#fff;border:1px solid #ff57a6;border-radius:12px;padding:24px}
+.remote-confirm-dialog::backdrop{background:#000b}.remote-confirm-dialog p{overflow-wrap:anywhere}.remote-confirm-dialog button:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.reward-history-filters{display:flex;flex-wrap:wrap;gap:12px}.reward-history-filters label{flex:1 1 160px}
+@media(max-width:760px){.roulette-v3 .machine-tabs button{font-size:12px;padding:10px 6px}.roulette-v3 .machine-rim-plates span{font-size:10px;padding:6px 8px}.roulette-v3 .machine-situation{grid-template-columns:1fr;gap:5px}.roulette-v3 .machine-situation dd{margin-bottom:8px}.roulette-v3 .machine-persisted-prize .machine-component{width:84px;height:84px}.roulette-v3 .machine-persisted-prize .machine-component img{max-width:70px;max-height:70px}}

@@ -3,13 +3,21 @@ import {rarityNames,rewardDate} from './rewards-view.js';
 import {WHEEL_SECTORS,RARITY_CHANCES,wheelGradient,rewardRotation,chooseDemonstration,demoCatalogReady} from './roulette-model.js';
 import {createSpinSession,bindSpinLifecycle} from './roulette-spin.js';
 import {itemArtwork,itemQuantities,itemImageNote,itemAttribution} from './roulette-item-view.js';
+import {operationalMarkup,mountOperationalRoulette} from './roulette-operational.js';
 
 const itemCard=(reward,{debug=false}={})=>`<article class="machine-prize rarity-${safe(reward.rarity)}"><div class="machine-prize-art machine-item-art">${itemArtwork(reward.items,reward.server_build??null)}</div><div><small>${safe(rarityNames[reward.rarity])}</small><h3>${safe(reward.name)}</h3><p>${itemQuantities(reward.items,reward.server_build??null)}</p>${debug?`<code>${reward.items.map(i=>safe(i.script_id)).join(' + ')}</code>`:''}<details class="machine-image-details"><summary>Sobre a imagem</summary><span class="machine-image-note">${safe(itemImageNote(reward.items,reward.server_build??null))}</span></details></div></article>`;
 function mechanicalWheel(){
  const lines=WHEEL_SECTORS.map(s=>{const r=s.start*Math.PI/180;return `<line x1="500" y1="500" x2="${500+480*Math.sin(r)}" y2="${500-480*Math.cos(r)}"/>`;}).join('');
  return `<div class="machine-stage"><div class="machine-pointer" aria-hidden="true"></div><div class="machine-rim" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i class="machine-bulb" style="--lamp:${i};left:${50+47*Math.sin(i*Math.PI/12)}%;top:${50-47*Math.cos(i*Math.PI/12)}%"></i>`).join('')}</div><button type="button" class="machine-wheel-trigger" data-demo-spin aria-label="Girar demonstração; sem valor oficial"><span class="machine-rotor" data-reward-wheel style="background:${wheelGradient()}"><svg class="machine-plate-lines" viewBox="0 0 1000 1000" aria-hidden="true"><circle cx="500" cy="500" r="474"/><circle cx="500" cy="500" r="445"/>${lines}</svg>${WHEEL_SECTORS.filter(s=>s.percent>=20).map(s=>{const r=s.center*Math.PI/180;return `<span class="machine-sector-label rarity-${s.rarity}" style="left:${50+33*Math.sin(r)}%;top:${50-33*Math.cos(r)}%">${safe(rarityNames[s.rarity])}<b>${s.percent}%</b></span>`;}).join('')}<span class="machine-patina" aria-hidden="true"></span></span><span class="machine-hub" aria-hidden="true"><img src="/assets/winx-zomboid-profile.webp" alt=""><b>WINX</b></span></button><span class="machine-rivet rivet-nw" aria-hidden="true"></span><span class="machine-rivet rivet-ne" aria-hidden="true"></span><span class="machine-rivet rivet-sw" aria-hidden="true"></span><span class="machine-rivet rivet-se" aria-hidden="true"></span></div>`;
 }
-export function rouletteMarkup({catalog,current,seasons=[],eligible=false,reason,mode='demo'}={}){
+export function rouletteMarkup(options={}){
+ if(options.demonstrationFixture===true)return demonstrationMarkup(options);
+ let wheel=mechanicalWheel().replace('data-demo-spin aria-label="Girar demonstração; sem valor oficial"','disabled aria-label="Roda de premiações; resultado definido no backend"');
+ const plates='<div class="machine-rim-plates" aria-label="Raridades menores sem ampliação dos setores"><span class="rarity-epic">ÉPICA <b>4%</b></span><span class="rarity-legendary">LENDÁRIA <b>1%</b></span></div>';
+ wheel=wheel.slice(0,-6)+plates+'</div>';
+ return operationalMarkup({...options,wheelMarkup:wheel});
+}
+function demonstrationMarkup({catalog,current,seasons=[],eligible=false,reason,mode='demo'}={}){
  const ready=demoCatalogReady(catalog);
  const identity=current?.eligibility?.life_id?`<details class="machine-identity"><summary>Conferir identidade e evidência da vida</summary><p>${safe(current.character_name||'Personagem certificado')}${current.steam_username?` · ${safe(current.steam_username)}`:''}</p><p>Vida: <code>${safe(current.eligibility.life_id)}</code><br>Última observação: ${safe(rewardDate(current.eligibility.last_observed_at))}</p></details>`:'';
  const preview=Object.keys(RARITY_CHANCES).flatMap(rarity=>(catalog?.rewards||[]).filter(r=>r.rarity===rarity).slice(0,rarity==='common'?2:1));
@@ -27,7 +35,8 @@ export function rouletteMarkup({catalog,current,seasons=[],eligible=false,reason
 }
 
 // Receives data and presentation callbacks only: no fetch or official-write callback.
-export function mountRouletteMachine(root,{catalog,current,mode='demo',audioContext=null,onMode=()=>{}}={}){
+export function mountRouletteMachine(root,{catalog,current,mode='demo',audioContext=null,onMode=()=>{},selectedDraw}={}){
+ if(root.dataset.operational==='true')return mountOperationalRoulette(root,{mode,draw:mode==='official'?current?.draw:selectedDraw,audioContext,onMode});
  const $=selector=>root.querySelector(selector),lifetime=new AbortController();
  let destroyed=false,audio=audioContext,voices=[],effect=null,forced=null,debug=false,muted=false,volume=25,activity=0,writing=false,returnFocus=null;
  const dialog=$('dialog'),rotor=$('[data-reward-wheel]');

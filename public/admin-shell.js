@@ -6,7 +6,7 @@ import {statusState} from './status-view.js';
 const pages={
  overview:['VISÃO GERAL / CONTROLE OPERACIONAL','O apocalipse sob controle.','Campeonato mensal, sobreviventes e infraestrutura em um só lugar.'],
  championship:['CAMPEONATO OFICIAL','Cada vida conta.','Classificação observada, calendário e certificação dos resultados.'],
- roulette:['SORTEIO SAZONAL / PAINEL ADMINISTRATIVO','Roleta dos Campeões','Uma recompensa oficial por temporada com campeão individual certificado.'],
+ roulette:['PREMIAÇÕES / PAINEL ADMINISTRATIVO','Roleta dos Campeões','Sorteio de fim de semana por conta verificada e prêmio oficial do campeão.'],
  catalog:['PREMIAÇÕES / CATÁLOGO E HISTÓRICO','Catálogo e gerenciamento','Itens por raridade, resultados persistidos e entrega manual auditada.'],
  memorial:['HISTÓRIA / PROGRESSÃO','Memorial e medalhas','Registros preservados e conquistas vinculadas a vidas verificadas.'],
  system:['ADMINISTRAÇÃO / INFRAESTRUTURA','Sistema e telemetria','Sinais consultados com fonte, validade e limites explícitos.'],
